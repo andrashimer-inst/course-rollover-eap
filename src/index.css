@@ -1,0 +1,55 @@
+body {
+  margin: 0;
+}
+
+/* The sub navigation options sit directly on the nav card (Figma), not in a box of their own. */
+.subnav-drilldown ul,
+.subnav-drilldown li {
+  background: transparent !important;
+}
+
+/* Keyboard focus for the Light and Dark global nav buttons. */
+.gnav-item:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+/* Skip link for the Light and Dark wrapper: hidden until it has keyboard focus. */
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 10000;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--skip-bg);
+  color: var(--skip-fg);
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* In-page navigation rows sit on the card (Figma). Options draws a fill behind its list; remove it.
+   The selected row keeps its own fill. */
+.content-tab-list li > div > span {
+  background: transparent !important;
+}
+
+/* The Legacy Courses tray mounts in a click-through box (see LegacyNav.tsx). The tray itself takes clicks. */
+.legacy-tray-mount * {
+  pointer-events: auto;
+}
+
+/* Theme switcher: the Legacy, Light and Dark toggle labels render too thin at the default weight. */
+.theme-switcher input[name='theme'] + label {
+  font-weight: 500;
+}
+.theme-switcher input[name='theme']:checked + label {
+  background-color: var(--theme-selected);
+}
+
+/* Copy wizard steps are native buttons with their styles reset, so they need their own focus ring. */
+.wizard-step:focus-visible {
+  outline: 0.125rem solid currentColor;
+  outline-offset: 0.25rem;
+}
