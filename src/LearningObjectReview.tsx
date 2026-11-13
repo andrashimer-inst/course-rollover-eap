@@ -372,7 +372,7 @@ export default function LearningObjectReview({
       <div style={{ marginInlineStart: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.md }}>
         {messageSent && <StatusPill size="sm" color="success">Message sent to your admin</StatusPill>}
         {/* Check acts on the findings, so it stands apart from the buttons that only open something. */}
-        <Button renderIcon={<IconAnalyticsLine />} onClick={() => setChecking(true)}>Check</Button>
+        <Button renderIcon={<IconAnalyticsLine />} onClick={() => setChecking(true)}>Run check</Button>
         <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
         <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
         <Button renderIcon={<IconEmailLine />} onClick={() => setHelpOpen(true)}>Message admin</Button>

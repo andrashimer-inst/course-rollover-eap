@@ -50,6 +50,10 @@ export function readiness(rows: ReviewRow[], choices: Record<string, Choice>): R
 export const dimensionsOf = (list: ReadyRule[]) =>
   DIMENSIONS.map((d: Dimension) => ({ dimension: d, rules: list.filter((x) => x.rule.dimension === d) })).filter((d) => d.rules.length > 0)
 
+// The readiness check as plain data, for the summary page.
+export const checkOf = (rows: ReviewRow[], choices: Record<string, Choice>) =>
+  dimensionsOf(readiness(rows, choices)).map((g) => ({ dimension: g.dimension as string, rules: g.rules.map((x) => ({ title: x.rule.title, status: x.status, note: x.note })) }))
+
 // ---- The to-do list ----
 
 export const TODO_GROUPS = [

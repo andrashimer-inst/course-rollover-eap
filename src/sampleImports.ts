@@ -2,7 +2,7 @@ import { FAILED_ITEMS } from './rolloverData'
 import type { CopySummary, HistoryEvent } from './rolloverData'
 import { buildRows, choiceOf } from './reviewData'
 import type { Choice } from './reviewData'
-import { INITIAL_OPENING, buildTodo, failedTodo, openingLabel } from './reviewCopyData'
+import { INITIAL_OPENING, buildTodo, checkOf, failedTodo, openingLabel } from './reviewCopyData'
 import { buildHistory } from './copyHistory'
 import { DATE_ITEMS, INITIAL_DATES } from './fixDatesData'
 
@@ -45,6 +45,7 @@ function summaryOf(course: string, when: string, created: number, published: boo
       ...buildTodo({ rows, choices, dates: INITIAL_DATES, comments: [], opening: INITIAL_OPENING }),
     ],
     history: buildHistory({ rows, choices, opens: published ? when : openingLabel(INITIAL_OPENING) }).map(stamp),
+    check: checkOf(rows, choices),
     datesShifted: DATE_ITEMS.length,
     datesEdited: 0,
   }

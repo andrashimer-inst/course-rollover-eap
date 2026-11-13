@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Button, IconEmailLine, IconExportLine, IconSearchLine, Link, Metric, ScreenReaderContent, SimpleSelect, Table, Tabs, Text, TextInput } from '@instructure/ui/v11_7'
+import { Button, IconDownloadLine, IconEmailLine, IconExportLine, IconSearchLine, Link, Metric, ScreenReaderContent, SimpleSelect, Table, Tabs, Text, TextInput } from '@instructure/ui/v11_7'
 import AdminHelpModal from './AdminHelpModal'
 import { ItemPreviewModal } from './ContentStep'
 import type { PreviewItem } from './ContentStep'
 import { previewItemOf } from './courseContentData'
 import AutoSelect from './AutoSelect'
 import Pager from './Pager'
+import ReadinessResults from './ReadinessResults'
 import FigmaAlert from './FigmaAlert'
 import StatusPill from './StatusPill'
 import { PEOPLE } from './copyHistory'
@@ -61,6 +62,9 @@ export function SummaryView({
   const [tab, setTab] = useState(0)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
+  // Clicking a column title of the history orders it by that column. A second click turns the order around.
+  const [sortBy, setSortBy] = useState<'when' | 'tag' | 'text' | 'who' | null>(null)
+  const [ascending, setAscending] = useState(true)
   // The to-do list sent to the educator by message, in the same window as the message to the admin in the learning object review.
   const [helpOpen, setHelpOpen] = useState(false)
   // The learning object that was clicked in the to-do list. It opens in the preview window.
@@ -85,10 +89,28 @@ export function SummaryView({
     ...summary.failed.map(failedTodo),
   ]
 
-  const history = summary.history
+  const filtered = summary.history
     .filter((h) => typeFilter === 'all' || h.tag === typeFilter)
     .filter((h) => personFilter === 'all' || h.who === personFilter)
     .filter((h) => !query.trim() || `${h.when} ${h.tag} ${h.text} ${h.who}`.toLowerCase().includes(query.trim().toLowerCase()))
+  // The date and time is text, so it is ordered the way the entries were recorded.
+  const history = (() => {
+    if (!sortBy) return filtered
+    const order = (h: HistoryEvent) => (sortBy === 'when' ? summary.history.indexOf(h) : h[sortBy].toLowerCase())
+    const sorted = [...filtered].sort((a, b) => (order(a) > order(b) ? 1 : order(a) < order(b) ? -1 : 0))
+    return ascending ? sorted : sorted.reverse()
+  })()
+  const sortProps = (key: 'when' | 'tag' | 'text' | 'who') => ({
+    onRequestSort: () => {
+      setPage(1)
+      if (sortBy === key) setAscending(!ascending)
+      else {
+        setSortBy(key)
+        setAscending(true)
+      }
+    },
+    sortDirection: sortBy === key ? (ascending ? ('ascending' as const) : ('descending' as const)) : ('none' as const),
+  })
   // The history shows 20 entries a page. Searching or filtering starts again on the first page.
   const PAGE_SIZE = 20
   const pageCount = Math.max(1, Math.ceil(history.length / PAGE_SIZE))
@@ -167,19 +189,24 @@ export function SummaryView({
               </ul>
             </section>
           </Tabs.Panel>
-          <Tabs.Panel id="tab-todo" renderTitle={`To-do list (${todoAll.length})`} isSelected={tab === 1} padding="general.spaceXl 0 0 0">
+          <Tabs.Panel id="tab-check" renderTitle="Course check" isSelected={tab === 1} padding="general.spaceXl 0 0 0">
+            <section aria-label="Course check" style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
+              <Text as="div" weight="bold" size="large">Course readiness check</Text>
+              <Text as="div" color="secondary">How the course stood against the readiness criteria of your account when it was copied.</Text>
+              <ReadinessResults groups={summary.check} />
+            </section>
+          </Tabs.Panel>
+          <Tabs.Panel id="tab-todo" renderTitle={`To-do list (${todoAll.length})`} isSelected={tab === 2} padding="general.spaceXl 0 0 0">
             <section aria-label="To-do list" style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
                   <Text as="div" weight="bold" size="large">To-do list</Text>
-                  <Text as="div" color="secondary">Actions that still need your attention after the copy. Export the list to keep it.</Text>
+                  <Text as="div" color="secondary">Actions that still need your attention after the copy. Download the list to keep it.</Text>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.sm }}>
-                  {/* In the real product this adds the items to the Canvas calendar. Nothing happens in the prototype. */}
-                  <Button>Add to calendar</Button>
                   <Button renderIcon={<IconEmailLine />} onClick={() => setHelpOpen(true)}>Email the list</Button>
-                  <Button renderIcon={<IconExportLine />} onClick={() => exportTodo(todoAll, summary.course)}>
-                    Export to-do list
+                  <Button renderIcon={<IconDownloadLine />} onClick={() => exportTodo(todoAll, summary.course)}>
+                    Download to-do list
                   </Button>
                 </div>
               </div>
@@ -242,7 +269,7 @@ export function SummaryView({
               </Table>
             </section>
           </Tabs.Panel>
-          <Tabs.Panel id="tab-history" renderTitle={`Copy history (${summary.history.length})`} isSelected={tab === 2} padding="general.spaceXl 0 0 0">
+          <Tabs.Panel id="tab-history" renderTitle={`Copy history (${summary.history.length})`} isSelected={tab === 3} padding="general.spaceXl 0 0 0">
       <section aria-labelledby="history" style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
           <Text as="div" weight="bold" size="large" id="history">Copy history</Text>
@@ -288,10 +315,10 @@ export function SummaryView({
         <Table caption={() => 'Copy history'} themeOverride={noFill}>
           <Table.Head themeOverride={noFill}>
             <Table.Row themeOverride={noFill}>
-              <Table.ColHeader themeOverride={noFill} id="h-when" width="20%">Date and time</Table.ColHeader>
-              <Table.ColHeader themeOverride={noFill} id="h-type" width="12%">Type</Table.ColHeader>
-              <Table.ColHeader themeOverride={noFill} id="h-what">Activity</Table.ColHeader>
-              <Table.ColHeader themeOverride={noFill} id="h-who" width="20%">User</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-when" width="20%" {...sortProps('when')}>Date and time</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-type" width="12%" {...sortProps('tag')}>Type</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-what" {...sortProps('text')}>Activity</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-who" width="20%" {...sortProps('who')}>User</Table.ColHeader>
             </Table.Row>
           </Table.Head>
           <Table.Body themeOverride={noFill}>
@@ -360,10 +387,10 @@ export function SummaryView({
         <Table caption={() => 'Copy history'} themeOverride={noFill}>
           <Table.Head themeOverride={noFill}>
             <Table.Row themeOverride={noFill}>
-              <Table.ColHeader themeOverride={noFill} id="h-when" width="20%">Date and time</Table.ColHeader>
-              <Table.ColHeader themeOverride={noFill} id="h-type" width="12%">Type</Table.ColHeader>
-              <Table.ColHeader themeOverride={noFill} id="h-what">Activity</Table.ColHeader>
-              <Table.ColHeader themeOverride={noFill} id="h-who" width="20%">User</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-when" width="20%" {...sortProps('when')}>Date and time</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-type" width="12%" {...sortProps('tag')}>Type</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-what" {...sortProps('text')}>Activity</Table.ColHeader>
+              <Table.ColHeader themeOverride={noFill} id="h-who" width="20%" {...sortProps('who')}>User</Table.ColHeader>
             </Table.Row>
           </Table.Head>
           <Table.Body themeOverride={noFill}>

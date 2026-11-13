@@ -18,7 +18,7 @@ import SelectCourseStep from "./SelectCourseStep";
 import FixDatesStep from "./FixDatesStep";
 import ReviewAndCopyStep from "./ReviewAndCopyStep";
 import { buildHistory } from "./copyHistory";
-import { INITIAL_OPENING, buildTodo, dimensionsOf, failedTodo, openingLabel, readiness } from "./reviewCopyData";
+import { INITIAL_OPENING, buildTodo, checkOf, dimensionsOf, failedTodo, openingLabel, readiness } from "./reviewCopyData";
 import type { Opening } from "./reviewCopyData";
 import { DATE_ITEMS, INITIAL_DATES, dateCounts } from "./fixDatesData";
 import type { Included } from "./fixDatesData";
@@ -346,6 +346,7 @@ export default function RolloverWizard({
         // The list is gathered from the choices made in the steps before.
         ...buildTodo({ rows, choices, dates, comments, opening, included }),
       ],
+      check: checkOf(rows, choices),
       datesShifted: adjustDates ? shifted : 0,
       datesEdited: adjustDates ? edited : 0,
     };

@@ -222,6 +222,8 @@ export type CopySummary = {
   notCame: { item: string; reason: string; kind: 'left-out' | 'canvas' | 'attention' }[]
   todo: TodoItem[]
   history: HistoryEvent[]
+  // The course readiness check as it stood when the course was copied, by area.
+  check: { dimension: string; rules: { title: string; status: 'pass' | 'fixed' | 'later' | 'open'; note: string }[] }[]
   datesShifted: number
   datesEdited: number
 }

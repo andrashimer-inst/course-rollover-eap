@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, Link, IconArrowOpenDownSolid, IconArrowOpenEndSolid, IconAssignmentLine, IconAnalyticsLine, Tabs, Text } from '@instructure/ui/v11_7'
+import { Button, IconAssignmentLine, IconAnalyticsLine, IconEyeLine, Text } from '@instructure/ui/v11_7'
 import StatusPill from './StatusPill'
 import ReadinessLoading from './ReadinessLoading'
-import { CoursePreview, ItemPreviewModal } from './ContentStep'
-import type { PreviewItem } from './ContentStep'
+import ReadinessResults from './ReadinessResults'
+import CoursePreviewModal from './CoursePreviewModal'
 import { dateNoteFor } from './dateNote'
-import { CONTENT_TYPES, MODULE_ENTRIES, ORIGIN, PREVIEW_KINDS, PREVIEW_NOTE } from './courseContentData'
+import { CONTENT_TYPES } from './courseContentData'
 import type { CopyMode, Picked, Scope } from './contentHelpers'
-import { STATUS_LABEL, dimensionsOf, openingLabel, readiness } from './reviewCopyData'
+import { dimensionsOf, openingLabel, readiness } from './reviewCopyData'
 import type { Opening } from './reviewCopyData'
-import type { ReadyStatus } from './reviewCopyData'
-import { choiceLabel, choiceOf, hiddenModules, itemIdOf } from './reviewData'
+import { choiceLabel, choiceOf, hiddenModules } from './reviewData'
 import type { Choice, DupeChoice, ReviewRow } from './reviewData'
 import { DATE_ITEMS, rowInfo } from './fixDatesData'
 import type { FixDatesState, Included } from './fixDatesData'
@@ -20,13 +19,6 @@ import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 // Step 5 of the copy wizard: review and copy. Before the copy runs, the teacher can run the course readiness check,
 // see a final preview of the modules with a note on what the choices changed, and choose when students see the
 // course. The copy itself starts from this step. The to-do list comes with the summary afterwards.
-
-const STATUS_PILL: Record<ReadyStatus, 'success' | 'warning' | 'error'> = {
-  pass: 'success',
-  fixed: 'success',
-  later: 'warning',
-  open: 'warning',
-}
 
 const MODULES = CONTENT_TYPES.find((c) => c.id === 'modules')!.items
 
@@ -55,13 +47,8 @@ export default function ReviewAndCopyStep({
     ? { background: t.containerColor, borderRadius: t.radiusCardMd, boxShadow: t.shadowResting, padding: t.space.lg }
     : undefined
 
-  const [tab, setTab] = useState(0)
-  // The secondary tabs of the course preview: modules, or learning objects.
-  const [previewTab, setPreviewTab] = useState(0)
-  // The item that was clicked in the preview. It opens in a window, view only.
-  const [openItem, setOpenItem] = useState<PreviewItem | null>(null)
-  // The groups of the learning objects tab open and close like an accordion. They start open.
-  const [closedGroups, setClosedGroups] = useState<string[]>([])
+  // The course preview window.
+  const [previewOpen, setPreviewOpen] = useState(false)
   const ready = useMemo(() => readiness(rows, choices), [rows, choices])
   const groups = useMemo(() => dimensionsOf(ready), [ready])
 
@@ -104,23 +91,6 @@ export default function ReviewAndCopyStep({
       : 'Publishing: manual. The course stays unpublished until you publish it.',
   ]
 
-  // Each item shows the decision made for it in the review, the same pills as in the learning object review.
-  // The learning objects copied on their own (not in a module), grouped by type, with the decisions made for each.
-  const inModule = new Set([...Object.values(MODULE_ENTRIES).flatMap((es) => es.map((e) => e.itemId)), ...MODULES.map((m) => m.id)])
-  const pillColor = (c: Choice) => (c === 'fix' ? 'warning' : c === 'leave' ? 'neutral' : 'success') as 'warning' | 'neutral' | 'success'
-  const objectItems = [...new Set(rows.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r))).map((r) => itemIdOf(r)))].map((id) => {
-    const own = rows.filter((r) => itemIdOf(r) === id)
-    const first = own[0]
-    const decisions = own
-      .map((r) => choiceOf(r, choices))
-      .filter((c): c is Choice => c !== undefined)
-      .filter((c, n, all) => all.indexOf(c) === n)
-      .map((c) => ({ label: choiceLabel(first, c), color: pillColor(c) }))
-    return { id, title: first.title, kind: first.kindLabel, group: first.group, decisions, left: decisions.some((d) => d.color === 'neutral') }
-  })
-  const objectCopied = objectItems.filter((i) => !i.left).length
-  const objectGroups = [...new Set(objectItems.map((i) => i.group))].map((g) => [g, objectItems.filter((i) => i.group === g)] as const)
-
   // Each item of the preview shows what was chosen for it in the review, and how its date checks out.
   const dateNote = dateNoteFor(dates, included)
   const noteFor = (itemId: string): ReactNode => {
@@ -143,8 +113,6 @@ export default function ReviewAndCopyStep({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xxl }}>
-      <Tabs onRequestTabChange={(_e, { index }) => setTab(index)}>
-        <Tabs.Panel id="tab-ready" renderTitle="Overview and course readiness" isSelected={tab === 0} padding="general.spaceXl 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
             <div style={cardStyle}>
               {/* Card title and description, with the to-do list button at the end of the row. */}
@@ -153,7 +121,10 @@ export default function ReviewAndCopyStep({
                   <Text as="div" weight="bold" size="large">Copy overview</Text>
                   <Text as="div" color="secondary">A summary of the choices you made in this copy.</Text>
                 </div>
-                <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md }}>
+                  <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
+                  <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
+                </div>
               </div>
               <ul style={{ margin: `${t.space.lg} 0 0`, paddingInlineStart: '1.25rem' }}>
                 {changes.map((c) => (
@@ -169,7 +140,7 @@ export default function ReviewAndCopyStep({
                 <Text as="div" color="secondary">The check goes through the readiness criteria of your account and your choices in the review.</Text>
               </div>
               <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
-                {running ? 'Checking…' : readyRan ? 'Check' : 'Run readiness check'}
+                {running ? 'Checking…' : 'Run check'}
               </Button>
             </div>
             <div style={{ marginTop: t.space.lg }}>
@@ -178,27 +149,7 @@ export default function ReviewAndCopyStep({
                   <ReadinessLoading areas={groups.map((g) => g.dimension)} onDone={() => { setRunning(false); setReadyRan(true) }} />
                 )}
                 {readyRan && !running && (
-                  <div>
-                    {groups.map((g) => (
-                      <div key={g.dimension} style={{ marginTop: t.space.lg }}>
-                        <div style={{ background: t.pageColor, padding: t.space.md }}>
-                          <Text weight="bold">{g.dimension}</Text>
-                        </div>
-                        {g.rules.map((x) => (
-                          <div
-                            key={x.rule.id}
-                            style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between', padding: t.space.md, borderTop: `${t.borderWidth} solid ${t.borderColor}` }}
-                          >
-                            <div style={{ flex: '1 1 20rem', minWidth: 0 }}>
-                              <Text as="div" weight="bold">{x.rule.title}</Text>
-                              <Text as="div" color="secondary">{x.note}</Text>
-                            </div>
-                            <StatusPill size="sm" color={STATUS_PILL[x.status]}>{STATUS_LABEL[x.status]}</StatusPill>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
+                  <ReadinessResults groups={groups.map((g) => ({ dimension: g.dimension, rules: g.rules.map((x) => ({ title: x.rule.title, status: x.status, note: x.note })) }))} />
                 )}
                 {!running && !readyRan && (
                   <Text color="secondary">Run the readiness check to see whether the course is ready for students, based on the choices you made. The check is optional.</Text>
@@ -207,84 +158,7 @@ export default function ReviewAndCopyStep({
             </div>
           </div>
           </div>
-        </Tabs.Panel>
-        <Tabs.Panel id="tab-final" renderTitle="Course preview" isSelected={tab === 1} padding="general.spaceXl 0 0 0">
-          {/* Two ways to look at the copy: by module, or by learning object. */}
-          <Tabs variant="secondary" onRequestTabChange={(_e, { index }) => setPreviewTab(index)}>
-            <Tabs.Panel id="preview-modules" renderTitle="Modules" variant="secondary" isSelected={previewTab === 0} padding="general.spaceLg 0 0 0">
-            <CoursePreview
-              title="Modules"
-              moduleIds={moduleIds}
-              keepCurrent={merging}
-              highlightNew
-              hidden={hiddenModules(dupes)}
-              noteFor={noteFor}
-              onOpenItem={setOpenItem}
-            />
-            </Tabs.Panel>
-            <Tabs.Panel id="preview-objects" renderTitle="Learning objects" variant="secondary" isSelected={previewTab === 1} padding="general.spaceLg 0 0 0">
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
-                  <Text as="div" weight="bold" size="large">Learning objects</Text>
-                  <Text as="div" color="secondary">
-                    {objectCopied} of {objectItems.length} learning objects will be copied. {PREVIEW_NOTE}
-                  </Text>
-                </div>
-                </div>
-              {objectGroups.length === 0 ? (
-                <Text as="p" color="secondary">No learning objects are copied on their own.</Text>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg, marginTop: t.space.lg }}>
-                  {objectGroups.map(([group, list]) => {
-                    const closed = closedGroups.includes(group)
-                    return (
-                      <div key={group} style={{ border: `${t.borderWidth} solid ${t.borderColor}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
-                        <button
-                          type="button"
-                          aria-expanded={!closed}
-                          onClick={() => setClosedGroups(closed ? closedGroups.filter((g) => g !== group) : [...closedGroups, group])}
-                          style={{ all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: t.space.sm, padding: t.space.md, background: t.pageColor, color: t.textColor }}
-                        >
-                          <span aria-hidden="true" style={{ display: 'inline-flex' }}>
-                            {closed ? <IconArrowOpenEndSolid /> : <IconArrowOpenDownSolid />}
-                          </span>
-                          <span style={{ flex: 1, minWidth: 0 }}><Text weight="bold">{group}</Text></span>
-                          <Text size="small" color="secondary">{list.filter((i) => !i.left).length} of {list.length} items will be copied</Text>
-                        </button>
-                        {!closed &&
-                          list.map((i) => (
-                            <div
-                              key={i.id}
-                              onClick={PREVIEW_KINDS.has(i.kind) ? () => setOpenItem({ title: i.title, kind: i.kind, where: 'Not in a module', origin: ORIGIN.incoming }) : undefined}
-                              style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between', padding: t.space.md, borderTop: `${t.borderWidth} solid ${t.borderColor}`, cursor: PREVIEW_KINDS.has(i.kind) ? 'pointer' : undefined }}
-                            >
-                              <div style={{ minWidth: 0 }}>
-                                <Text as="div" weight="bold">
-                                  {/* Pages, assignments, quizzes and files can be looked at. The rest stay as text. */}
-                                  {PREVIEW_KINDS.has(i.kind) ? <Link as="button" onClick={() => setOpenItem({ title: i.title, kind: i.kind, where: 'Not in a module', origin: ORIGIN.incoming })}>{i.title}</Link> : i.title}
-                                </Text>
-                                <Text as="div" size="small" color="secondary">{i.kind}</Text>
-                              </div>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.sm }}>
-                                {i.decisions.map((d) => (
-                                  <StatusPill key={d.label} size="xs" color={d.color}>{d.label}</StatusPill>
-                                ))}
-                                {dateNote(i.id)}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-            </Tabs.Panel>
-          </Tabs>
-        </Tabs.Panel>
-      </Tabs>
-      <ItemPreviewModal item={openItem} onClose={() => setOpenItem(null)} />
+      <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={noteFor} />
     </div>
   )
 }

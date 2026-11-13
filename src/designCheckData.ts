@@ -35,7 +35,7 @@ export const DESIGN_RULES: DesignRule[] = [
   { id: 'modules', dimension: 'Content', severity: 'critical', level: 'object', title: 'Modules are published.', why: 'Students cannot open a module that is still a draft.' },
   { id: 'pages', dimension: 'Content', severity: 'critical', level: 'object', title: 'Pages are published.', why: 'Students cannot open a page that is still a draft.' },
   { id: 'syllabus', dimension: 'Content', severity: 'critical', level: 'object', title: 'Syllabus is visible and has enough text.', why: 'A short syllabus leaves students without the basics: grading, policies and dates.' },
-  { id: 'unused', dimension: 'Content', severity: 'warning', level: 'object', title: 'Items were used last term.', why: 'A shorter course is easier to find your way in, and unused items add clutter and things to maintain.' },
+  { id: 'unused', dimension: 'Content', severity: 'warning', level: 'object', title: 'Items not used last term are reviewed.', why: 'A shorter course is easier to find your way in, and unused items add clutter and things to maintain.' },
   { id: 'links', dimension: 'Content', severity: 'critical', level: 'course', title: 'Links between items open the right item.', why: 'A link that points to the old course shows students an error.' },
   { id: 'missing-links', dimension: 'Content', severity: 'critical', level: 'course', title: 'Tool links are linked again.', why: 'Canvas cannot copy the connection to an external tool, so each link needs to be linked again before students use it.' },
   // Activities
