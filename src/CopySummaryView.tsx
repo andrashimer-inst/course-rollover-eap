@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Button, IconEmailLine, IconExportLine, IconSearchLine, Link, Metric, ScreenReaderContent, SimpleSelect, Table, Tabs, Text, TextInput } from '@instructure/ui/v11_7'
 import AdminHelpModal from './AdminHelpModal'
+import { ItemPreviewModal } from './ContentStep'
+import type { PreviewItem } from './ContentStep'
+import { previewItemOf } from './courseContentData'
 import AutoSelect from './AutoSelect'
 import Pager from './Pager'
 import FigmaAlert from './FigmaAlert'
@@ -60,6 +63,8 @@ export function SummaryView({
   const [page, setPage] = useState(1)
   // The to-do list sent to the educator by message, in the same window as the message to the admin in the learning object review.
   const [helpOpen, setHelpOpen] = useState(false)
+  // The learning object that was clicked in the to-do list. It opens in the preview window.
+  const [openItem, setOpenItem] = useState<PreviewItem | null>(null)
 
   // What was not copied. A failure is an error, not a decision, so it has a red pill and is on the to-do list.
   type NotCopied = { item: string; reason: string; kind: 'failed' | 'left-out' | 'canvas' | 'attention'; canBring: boolean }
@@ -202,13 +207,15 @@ export function SummaryView({
                           <Table.Cell themeOverride={noFill}>
                             {/* A link to the item in the course. It does not go anywhere in the prototype. */}
                             {grp.content ? (
-                              // The item and the module it is in are two links: "Energy essay (Assignment), in Module 4: Energy".
-                              grp.content.split(', in ').map((part, n) => (
-                                <span key={part}>
-                                  {n > 0 && ', in '}
-                                  <Link as="button" onClick={() => {}}>{part}</Link>
-                                </span>
-                              ))
+                              // The item is a link only when it has a preview. The module it is in stays as text.
+                              previewItemOf(grp.content) ? (
+                                <>
+                                  <Link as="button" onClick={() => setOpenItem(previewItemOf(grp.content))}>{grp.content.split(', in ')[0]}</Link>
+                                  {grp.content.includes(', in ') && `, in ${grp.content.split(', in ').slice(1).join(', in ')}`}
+                                </>
+                              ) : (
+                                grp.content
+                              )
                             ) : (
                               <Text color="secondary">None</Text>
                             )}
@@ -379,6 +386,7 @@ export function SummaryView({
       </section>
       )}
 
+      <ItemPreviewModal item={openItem} onClose={() => setOpenItem(null)} />
       <AdminHelpModal
         open={helpOpen}
         items={todoAll.map((x) => ({ title: x.title, detail: x.detail }))}

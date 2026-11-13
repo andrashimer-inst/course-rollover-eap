@@ -1,4 +1,8 @@
-import { CloseButton, Heading, Text, Tray } from '@instructure/ui/v11_7'
+import { useState } from 'react'
+import { CloseButton, Heading, Link, Text, Tray } from '@instructure/ui/v11_7'
+import { ItemPreviewModal } from './ContentStep'
+import type { PreviewItem } from './ContentStep'
+import { previewItemOf } from './courseContentData'
 import StatusPill from './StatusPill'
 import { TODO_GROUPS, groupTodo, tagOf } from './reviewCopyData'
 import type { TodoItem } from './rolloverData'
@@ -13,9 +17,12 @@ export const TODO_DESCRIPTION = 'What is left for you to do by hand. It changes 
 
 export function TodoList({ todo }: { todo: TodoItem[] }) {
   const t = useSurfaceTokens()
+  // The item that was clicked. It opens in the preview window, view only.
+  const [openItem, setOpenItem] = useState<PreviewItem | null>(null)
   if (todo.length === 0) return <Text>Nothing to do so far.</Text>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xl }}>
+      <ItemPreviewModal item={openItem} onClose={() => setOpenItem(null)} />
       {TODO_GROUPS.map((g) => {
         const items = todo.filter((x) => x.group === g)
         if (items.length === 0) return null
@@ -39,7 +46,19 @@ export function TodoList({ todo }: { todo: TodoItem[] }) {
                       </div>
                     ))}
                   </div>
-                  {grp.content && <Text as="div" size="small" color="secondary">{grp.content}</Text>}
+                  {/* An item that has a preview is a link to it. The others stay as text. */}
+                  {grp.content && (
+                    <Text as="div" size="small" color="secondary">
+                      {previewItemOf(grp.content) ? (
+                        <>
+                          <Link as="button" onClick={() => setOpenItem(previewItemOf(grp.content))}>{grp.content.split(', in ')[0]}</Link>
+                          {grp.content.includes(', in ') && `, in ${grp.content.split(', in ').slice(1).join(', in ')}`}
+                        </>
+                      ) : (
+                        grp.content
+                      )}
+                    </Text>
+                  )}
                 </li>
               ))}
             </ul>

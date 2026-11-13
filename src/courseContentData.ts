@@ -91,3 +91,21 @@ export const CURRENT_MODULES: { id: string; label: string; source: 'manual' | 'c
     entries: [{ itemId: 'current:5', title: 'Reading list.pdf', kind: 'file', meta: 'File' }],
   },
 ]
+
+// Where an item of the preview comes from, as the pill says it: already in the course, from an earlier copy, or coming with this copy.
+// Said wherever the preview can open an item: only these kinds have a preview.
+export const PREVIEW_NOTE = 'Select an item to preview it. Previews aren’t available for every item type.'
+
+export const ORIGIN = { manual: 'In course', earlier: 'Earlier copy', incoming: 'This copy' }
+
+// Only these kinds can be opened in a preview.
+export const PREVIEW_KINDS = new Set(['Page', 'Assignment', 'Quiz', 'File'])
+
+// The item behind a line like "Course welcome (Page), in Welcome to the course", for the preview window. Null when the line is not
+// about one item, or the item is of a kind that has no preview.
+export function previewItemOf(content?: string): { title: string; kind: string; meta?: string; where: string; origin: string } | null {
+  const m = content?.match(/^(.*) \(([^)]+)\)(?:, in (.*))?$/)
+  if (!m || !PREVIEW_KINDS.has(m[2])) return null
+  const entry = Object.values(MODULE_ENTRIES).flat().find((e) => e.title === m[1])
+  return { title: m[1], kind: m[2], meta: entry?.meta, where: m[3] ?? 'Not in a module', origin: ORIGIN.incoming }
+}

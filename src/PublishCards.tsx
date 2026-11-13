@@ -1,4 +1,4 @@
-import { Checkbox, DateInput, SimpleSelect, Text } from '@instructure/ui/v11_7'
+import { Checkbox, DateInput, RadioInput, RadioInputGroup, SimpleSelect, Text } from '@instructure/ui/v11_7'
 import type { Opening } from './reviewCopyData'
 import { useSurfaceTokens } from './appTheme'
 
@@ -28,17 +28,19 @@ export default function PublishCards({ opening, setOpening }: { opening: Opening
         display: 'flex',
         flexDirection: 'column',
         gap: t.space.md,
+        flex: 1,
       }}
     >
       <Text weight="bold" size="large">Course publishing</Text>
-      <SimpleSelect
-        renderLabel={<Text weight="bold">Publish</Text>}
+      <RadioInputGroup
+        name="publish-mode"
+        description={<Text weight="bold">Publish</Text>}
         value={opening.mode}
-        onChange={(_e, { value }) => setOpening({ ...opening, mode: value as Opening['mode'] })}
+        onChange={(_e, value) => setOpening({ ...opening, mode: value as Opening['mode'] })}
       >
-        <SimpleSelect.Option id="publish-open" value="open">Automatically, on a set day</SimpleSelect.Option>
-        <SimpleSelect.Option id="publish-self" value="self">Manually</SimpleSelect.Option>
-      </SimpleSelect>
+        <RadioInput value="open" label="Automatically, on a set day" />
+        <RadioInput value="self" label="Manually" />
+      </RadioInputGroup>
       <Text as="div" color="secondary">
         {auto ? 'Hidden from students until the day and time below.' : 'The course stays hidden until you publish it.'}
       </Text>

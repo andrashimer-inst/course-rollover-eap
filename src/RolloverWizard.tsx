@@ -419,9 +419,11 @@ export default function RolloverWizard({
   };
 
   // The to-do list so far. It follows the choices, so the review step can show it while the choices are made.
+  // The dates entries start from the dates step, because the dates are only set there.
+  const datesReached = step >= steps.indexOf("dates");
   const todoNow = useMemo(
-    () => buildTodo({ rows, choices, dates, comments, opening, included }),
-    [rows, choices, dates, comments, opening, included],
+    () => buildTodo({ rows, choices, dates, comments, opening, included, withDates: datesReached }),
+    [rows, choices, dates, comments, opening, included, datesReached],
   );
 
   const [todoOpen, setTodoOpen] = useState(false);

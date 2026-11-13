@@ -13,7 +13,9 @@ import {
   Table,
   Tabs,
   IconAssignmentLine,
+  IconAnalyticsLine,
   IconEmailLine,
+  IconEyeLine,
   Metric,
   Text,
   View,
@@ -36,14 +38,6 @@ import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 // done, and it can be changed at any time. Ticking rows opens bulk actions.
 
 const noFill = { background: 'transparent' }
-type Filter = 'all' | 'suggestion' | 'todo' | 'done'
-const FILTERS: [Filter, string][] = [
-  ['all', 'All items'],
-  ['suggestion', 'Has a finding'],
-  ['todo', 'Still to decide'],
-  ['done', 'Action taken'],
-]
-
 const MODULES = CONTENT_TYPES.find((c) => c.id === 'modules')!.items
 
 export default function LearningObjectReview({
@@ -64,7 +58,6 @@ export default function LearningObjectReview({
   // Light and Dark put the table on a card. Legacy stays flat on the page.
   const legacy = useAppThemeKey() === 'legacy'
   const card = !legacy
-  const [filter, setFilter] = useState<Filter>('all')
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const selected = selectedRows
   // One message to the admin about the whole review, and whether it was sent.
@@ -88,21 +81,17 @@ export default function LearningObjectReview({
   // Learning objects inside a module, and those that are copied on their own. The course preview only shows modules,
   // so the ones on their own are reviewed in a card of their own and do not change the preview.
   const inModule = new Set([...Object.values(MODULE_ENTRIES).flatMap((es) => es.map((e) => e.itemId)), ...MODULES.map((m) => m.id)])
-  // The filter counts only the items of the tab that is open.
-  const tabRows = rows.filter((r) =>
-    tab === 0 ? !r.courseWide && inModule.has(itemIdOf(r)) : tab === 1 ? !r.courseWide && !inModule.has(itemIdOf(r)) : !!r.courseWide,
-  )
-  const counts = {
-    all: tabRows.length,
-    suggestion: tabRows.filter((r) => r.hasSuggestion).length,
-    todo: tabRows.filter((r) => !done(r)).length,
-    done: tabRows.filter(done).length,
-  }
-  const shown = rows.filter((r) => filter === 'all' || (filter === 'suggestion' && r.hasSuggestion) || (filter === 'todo' && !done(r)) || (filter === 'done' && done(r)))
+  const shown = rows
   const groupsOf = (list: ReviewRow[]) => [...new Set(list.map((r) => r.group))]
   const wholeRows = shown.filter((r) => r.courseWide)
   const moduleRows = shown.filter((r) => !r.courseWide && inModule.has(itemIdOf(r)))
   const standaloneRows = shown.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r)))
+
+  // Findings still to review in each tab: the rows with no action chosen yet. It shows on the tab, so it is clear where work is left.
+  const left = (list: ReviewRow[]) => list.filter((r) => !done(r)).length
+  const moduleLeft = left(rows.filter((r) => !r.courseWide && inModule.has(itemIdOf(r))))
+  const objectsLeft = left(rows.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r))))
+  const generalLeft = left(rows.filter((r) => r.courseWide))
 
   // Items that will come over: every learning object that is not left out. The course-wide issues are not items.
   const comeOver = rows.filter((r) => !r.courseWide && !r.extra && r.typeId !== 'modules' && choiceOf(r, choices) !== 'leave').length
@@ -126,7 +115,7 @@ export default function LearningObjectReview({
     const r = rows.find((x) => x.id === itemId)
     const c = r ? choiceOf(r, choices) : undefined
     return r && c ? (
-      <StatusPill size="xs" color={c === 'fix' ? 'warning' : c === 'leave' ? 'error' : 'success'}>
+      <StatusPill size="xs" color={c === 'fix' ? 'warning' : c === 'leave' ? 'neutral' : 'success'}>
         {choiceLabel(r, c)}
       </StatusPill>
     ) : null
@@ -215,7 +204,17 @@ export default function LearningObjectReview({
         >
         {title && (
           <div style={{ marginBottom: t.space.md, minHeight: '2rem', display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between' }}>
-            {showTitle ? <Text weight="bold" size="large">{title}</Text> : <span />}
+            {showTitle ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
+                <Text weight="bold" size="large">{title}</Text>
+                {/* How many findings of this card still have no action. */}
+                <Text as="div" color="secondary">
+                  {left(subset) > 0 ? `${left(subset)} ${left(subset) === 1 ? 'finding' : 'findings'} left to review` : 'All findings reviewed'}
+                </Text>
+              </div>
+            ) : (
+              <span />
+            )}
             {/* Opens or closes every group bar of this card at once. */}
             {(() => {
               const groups = groupsOf(subset).filter((g) => g !== 'Whole course')
@@ -252,7 +251,7 @@ export default function LearningObjectReview({
           <Table.Body themeOverride={noFill}>
             {subset.length === 0 && (
               <Table.Row themeOverride={noFill}>
-                <Table.Cell themeOverride={noFill} colSpan={4}>No items match this filter.</Table.Cell>
+                <Table.Cell themeOverride={noFill} colSpan={4}>No items to review.</Table.Cell>
               </Table.Row>
             )}
             {groupsOf(subset).flatMap((g) => {
@@ -315,8 +314,9 @@ export default function LearningObjectReview({
                       <Table.Cell themeOverride={noFill}>
                         {!r.hasSuggestion ? (
                           <>
-                            <Text as="div" weight="bold">Nothing found</Text>
-                            <Text as="div" color="secondary">It is copied as it is.</Text>
+                            {/* A green pill like the findings have, so a row with nothing found reads as fine at a glance. */}
+                            <StatusPill size="sm" color="success">Nothing found</StatusPill>
+                            <Text as="div">It is copied as it is.</Text>
                           </>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.md }}>
@@ -365,25 +365,16 @@ export default function LearningObjectReview({
     )
   }
 
-  // The filter, under the tabs.
+  // The buttons under the tabs.
   const filterRow = (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between' }}>
-      <div style={{ width: '16rem', maxWidth: '100%' }}>
-          <SimpleSelect
-            renderLabel={<ScreenReaderContent>Show</ScreenReaderContent>}
-            value={filter}
-            onChange={(_e, { value }) => setFilter(String(value) as Filter)}
-          >
-            {FILTERS.map(([id, label]) => (
-              <SimpleSelect.Option key={id} id={`filter-${id}`} value={id}>{`${label} (${counts[id]})`}</SimpleSelect.Option>
-            ))}
-          </SimpleSelect>
-        </div>
       {/* The check, preview, message and to-do buttons at the end of the row, under the tabs. */}
       <div style={{ marginInlineStart: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.md }}>
         {messageSent && <StatusPill size="sm" color="success">Message sent to your admin</StatusPill>}
-        <Button onClick={() => setChecking(true)}>Check</Button>
-        <Button onClick={() => setPreviewOpen(true)}>Course preview</Button>
+        {/* Check acts on the findings, so it stands apart from the buttons that only open something. */}
+        <Button renderIcon={<IconAnalyticsLine />} onClick={() => setChecking(true)}>Check</Button>
+        <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
+        <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
         <Button renderIcon={<IconEmailLine />} onClick={() => setHelpOpen(true)}>Message admin</Button>
         <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todo.length})</Button>
       </div>
@@ -443,17 +434,15 @@ export default function LearningObjectReview({
         setTab(index)
         setSelected([])
         setBulk('')
-        // The filter is for the tab it was set in, so every tab starts on all items.
-        setFilter('all')
       }}>
-        <Tabs.Panel id="tab-modules" renderTitle="Modules" isSelected={tab === 0} padding="general.spaceMd 0 0 0">
+        <Tabs.Panel id="tab-modules" renderTitle={`Modules (${moduleLeft})`} isSelected={tab === 0} padding="general.spaceMd 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
             {filterRow}
             {bulkBar('Bulk actions')}
-          {moduleRows.length > 0 ? reviewTable(moduleRows, 'Learning objects in modules', 'Modules') : <Text as="p">No items in modules match this filter.</Text>}
+          {moduleRows.length > 0 ? reviewTable(moduleRows, 'Learning objects in modules', 'Modules') : <Text as="p">No items in modules to review.</Text>}
           </div>
         </Tabs.Panel>
-        <Tabs.Panel id="tab-objects" renderTitle="Learning objects" isSelected={tab === 1} padding="general.spaceMd 0 0 0">
+        <Tabs.Panel id="tab-objects" renderTitle={`Learning objects (${objectsLeft})`} isSelected={tab === 1} padding="general.spaceMd 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
             {filterRow}
             {bulkBar('Bulk actions')}
@@ -469,18 +458,18 @@ export default function LearningObjectReview({
               </div>
               <Text as="p" color="secondary">
                 {rows.some((r) => !r.courseWide && !inModule.has(itemIdOf(r)))
-                  ? 'No items here match this filter.'
+                  ? 'No items to review here.'
                   : 'No learning objects are copied on their own. Select items outside modules on the previous page, like a quiz or a file, and they are reviewed here.'}
               </Text>
             </div>
           )}
           </div>
         </Tabs.Panel>
-        <Tabs.Panel id="tab-course" renderTitle="General items" isSelected={tab === 2} padding="general.spaceMd 0 0 0">
+        <Tabs.Panel id="tab-course" renderTitle={`General items (${generalLeft})`} isSelected={tab === 2} padding="general.spaceMd 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
             {filterRow}
             {bulkBar('Bulk actions')}
-          {wholeRows.length > 0 ? reviewTable(wholeRows, 'Issues that affect the whole course', 'General items') : <Text as="p">No items match this filter.</Text>}
+          {wholeRows.length > 0 ? reviewTable(wholeRows, 'Issues that affect the whole course', 'General items') : <Text as="p">No items to review.</Text>}
           </div>
         </Tabs.Panel>
       </Tabs>

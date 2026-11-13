@@ -12,15 +12,16 @@ import {
   IconQuizLine,
   Link,
   RadioInput,
+  RadioInputGroup,
   Modal,
   CloseButton,
   Heading,
-  SimpleSelect,
+  Tabs,
   Text,
   Tooltip,
   View,
 } from '@instructure/ui/v11_7'
-import { CONTENT_TYPES, CURRENT_MODULES, MODULE_ENTRIES } from './courseContentData'
+import { CONTENT_TYPES, CURRENT_MODULES, MODULE_ENTRIES, ORIGIN, PREVIEW_KINDS, PREVIEW_NOTE } from './courseContentData'
 import { TYPE_ICON, countPicked, keys, pulledInBy, withPulledIn } from './contentHelpers'
 import type { CopyMode, Picked, Scope } from './contentHelpers'
 import type { ContentType, ModuleEntry } from './courseContentData'
@@ -32,7 +33,7 @@ import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 const MODULES = CONTENT_TYPES.find((c) => c.id === 'modules')!.items
 // The list to tick from: the single things (no list under them) first, then the rest, each part in alphabetical order.
 // One description for both views of the step 2 preview. It does not change with the choices.
-const PREVIEW_DESCRIPTION = 'The course as it will look after the copy.'
+const PREVIEW_DESCRIPTION = `The course as it will look after the copy. ${PREVIEW_NOTE}`
 
 const SORTED_TYPES = [...CONTENT_TYPES].sort((a, b) => Number(a.items.length > 0) - Number(b.items.length > 0) || a.label.localeCompare(b.label))
 
@@ -43,7 +44,6 @@ const SORTED_TYPES = [...CONTENT_TYPES].sort((a, b) => Number(a.items.length > 0
 export type PreviewItem = { title: string; kind: string; meta?: string; where: string; origin: string }
 
 // Only these can be opened from the preview, and they open view only, the way a student sees them.
-export const PREVIEW_KINDS = new Set(['Page', 'Assignment', 'Quiz', 'File'])
 const PREVIEW_TYPES = new Set(['pages', 'assignments', 'quizzes', 'files'])
 
 // The facts of an item from its line in the module, like "Oct 7 | 15 pts | Submit".
@@ -225,18 +225,15 @@ export default function ContentStep({
 
   const comingModules = scope === 'whole' ? MODULES : MODULES.filter((m) => picked[m.id])
   const keepCurrent = scope === 'part' && mode === 'merge'
+  // Two ways to look at the same copy, as secondary tabs inside the card: by module, or by learning object. The list under the card follows the tab.
   const viewSelect = (
-    <SimpleSelect
-      renderLabel={<Text weight="bold">View</Text>}
-      value={String(previewTab)}
-      onChange={(_e, { value }) => setPreviewTab(Number(value))}
-    >
-      <SimpleSelect.Option id="view-modules" value="0">Modules</SimpleSelect.Option>
-      <SimpleSelect.Option id="view-objects" value="1">Learning objects</SimpleSelect.Option>
-    </SimpleSelect>
+    <Tabs variant="secondary" onRequestTabChange={(_e, { index }) => setPreviewTab(index)}>
+      <Tabs.Panel id="view-modules" renderTitle="Modules" variant="secondary" isSelected={previewTab === 0} padding="0">{null}</Tabs.Panel>
+      <Tabs.Panel id="view-objects" renderTitle="Learning objects" variant="secondary" isSelected={previewTab === 1} padding="0">{null}</Tabs.Panel>
+    </Tabs>
   )
 
-  // One card: a dropdown picks the whole course or part of it, and what belongs to that choice shows under it.
+  // One card: radio buttons pick the whole course or part of it, and what belongs to that choice shows under it.
   const partText = SORTED_TYPES.map((c) => c.label).join(', ') + '.'
   const scopeCard = (
     <div
@@ -252,15 +249,15 @@ export default function ContentStep({
       }}
     >
       <Text weight="bold" size="large">Content to copy</Text>
-      <SimpleSelect
-        renderLabel={<Text weight="bold">Copy</Text>}
-        placeholder="Choose what to copy"
+      <RadioInputGroup
+        name="content-scope"
+        description={<Text weight="bold">Copy</Text>}
         value={scope ?? ''}
-        onChange={(_e, { value }) => setScope(value as Scope)}
+        onChange={(_e, value) => setScope(value as Scope)}
       >
-        <SimpleSelect.Option id="scope-whole" value="whole">The whole course</SimpleSelect.Option>
-        <SimpleSelect.Option id="scope-part" value="part">Part of it</SimpleSelect.Option>
-      </SimpleSelect>
+        <RadioInput value="whole" label="The whole course" />
+        <RadioInput value="part" label="Part of it" />
+      </RadioInputGroup>
       {scope === 'whole' && (
         <>
           <Text as="div" color="secondary">{`${MODULES.length} modules and all learning objects.`}</Text>
@@ -415,10 +412,10 @@ export function ObjectsPreview({ scope, picked, keepCurrent, description = '', h
   const groups = SORTED_TYPES.filter((type) => type.id !== 'modules').map((type) => {
     const coming = (type.items.length ? type.items : [{ id: type.id, label: type.label }])
       .filter((i) => scope === 'whole' || picked[i.id])
-      .map((i) => ({ id: i.id, label: i.label, origin: 'New' }))
+      .map((i) => ({ id: i.id, label: i.label, origin: ORIGIN.incoming }))
     const existing = CURRENT_MODULES
       .filter((m) => keepCurrent || m.source === 'manual')
-      .flatMap((m) => m.entries.filter((e) => KIND_TYPE[e.kind] === type.id).map((e) => ({ id: e.itemId, label: e.title, origin: m.source === 'manual' ? 'Added manually' : 'Copied before' })))
+      .flatMap((m) => m.entries.filter((e) => KIND_TYPE[e.kind] === type.id).map((e) => ({ id: e.itemId, label: e.title, origin: m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier })))
     return { type, rows: [...existing, ...coming] }
   }).filter((g) => g.rows.length > 0)
   // Where an item sits: the module that holds it, or nowhere when it is copied on its own.
@@ -463,11 +460,11 @@ export function ObjectsPreview({ scope, picked, keepCurrent, description = '', h
               onClick={onOpenItem && PREVIEW_TYPES.has(type.id) ? () => openRow(type, r) : undefined}
               style={{ display: 'flex', alignItems: 'center', gap: t.space.md, padding: t.space.md, borderTop: `${t.borderWidth} solid ${t.borderColor}`, cursor: onOpenItem && PREVIEW_TYPES.has(type.id) ? 'pointer' : undefined }}
             >
-              <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.sm }}>
                 <Text as="div">{onOpenItem && PREVIEW_TYPES.has(type.id) ? <Link as="button" onClick={() => openRow(type, r)}>{r.label}</Link> : r.label}</Text>
+                <StatusPill size="xs" color={r.origin === ORIGIN.incoming ? 'info' : 'neutral'}>{r.origin}</StatusPill>
               </span>
               {noteFor?.(r.id)}
-              <StatusPill size="xs" color={r.origin === 'New' ? 'info' : 'neutral'}>{r.origin}</StatusPill>
             </div>
           ))}
         </div>
@@ -518,7 +515,7 @@ export function CoursePreview({
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
       {title !== false && <Text as="div" weight="bold" size={titleSize} id="course-preview">{title ?? 'Preview'}</Text>}
       <Text as="div" color="secondary">
-        {description ?? <>{moduleIds.length} of {MODULES.length} modules will be copied.</>}
+        {description ?? <>{moduleIds.length} of {MODULES.length} modules will be copied.{onOpenItem ? ` ${PREVIEW_NOTE}` : ''}</>}
       </Text>
       {headerExtra}
     </div>
@@ -574,19 +571,18 @@ export function CoursePreview({
                 <span aria-hidden="true" style={{ display: 'inline-flex' }}>
                   {closed[m.id] ? <IconArrowOpenEndSolid /> : <IconArrowOpenDownSolid />}
                 </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <Text weight="bold" color={m.isNew && highlightNew ? 'primary-inverse' : undefined}>{m.label}</Text>
-                </span>
-                {/* Each module says where it comes from: the new copy, an earlier copy, or added by hand. */}
-                <Text size="small" color={m.isNew && highlightNew ? 'primary-inverse' : 'secondary'}>
-                  {m.isNew ? 'New' : m.source === 'manual' ? 'Added manually' : 'Copied before'}
-                </Text>
+                <Text weight="bold" color={m.isNew && highlightNew ? 'primary-inverse' : undefined}>{m.label}</Text>
+                {/* Each module says where it comes from, as a pill next to its name. On the blue bar the pill is white. */}
+                <StatusPill size="xs" color="neutral" colors={m.isNew && highlightNew ? { background: t.onColor, text: t.linkColor } : undefined}>
+                  {m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier}
+                </StatusPill>
+                <span style={{ flex: 1 }} />
               </button>
             </View>
             {!closed[m.id] && m.entries.filter((e) => !hiddenItems?.has(e.itemId)).map((e) => (
               <div
                 key={e.itemId}
-                onClick={onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? () => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? 'New' : m.source === 'manual' ? 'Added manually' : 'Copied before' }) : undefined}
+                onClick={onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? () => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier }) : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -600,7 +596,7 @@ export function CoursePreview({
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <Text as="div" weight="bold">
                     {/* A link, so the item can be opened with the keyboard as well. */}
-                    {onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? <Link as="button" onClick={() => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? 'New' : m.source === 'manual' ? 'Added manually' : 'Copied before' })}>{e.title}</Link> : e.title}
+                    {onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? <Link as="button" onClick={() => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier })}>{e.title}</Link> : e.title}
                   </Text>
                   <Text as="div" size="small" color="secondary">{e.meta}</Text>
                 </span>

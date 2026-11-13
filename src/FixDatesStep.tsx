@@ -5,6 +5,9 @@ import {
   CircleAlertInstUIIcon,
   CircleCheckInstUIIcon,
   IconAssignmentLine,
+  IconEyeLine,
+  RadioInput,
+  RadioInputGroup,
   SimpleSelect,
   Table,
   Text,
@@ -21,8 +24,8 @@ import StatusPill from './StatusPill'
 import Pager from './Pager'
 import { dateNoteFor } from './dateNote'
 import type { Included } from './fixDatesData'
-import { DATE_ITEMS, DEFAULT_TIME, FALL_START, NO_DATE_ITEMS, closedName, fmtShort, lastDayOf, localLabel, parseStart, rowInfo, startFor, timeOf, utcLabel } from './fixDatesData'
-import type { DateChoice, DateMode, FixDatesState, NoDateChoice } from './fixDatesData'
+import { DATE_ITEMS, DEFAULT_TIME, FALL_END, FALL_START, NO_DATE_ITEMS, closedName, fmtShort, lastDayOf, localLabel, parseStart, rowInfo, startFor, timeOf, utcLabel } from './fixDatesData'
+import type { DateMode, FixDatesState, NoDateChoice } from './fixDatesData'
 import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 
 // Step 4 of the copy wizard: fix the dates. The teacher chooses how dates move to the new term, and each item that
@@ -41,6 +44,8 @@ const reasonOf = (closed: string) => {
 // The first day field and the fix-all dropdown are the same width, wide enough for the longest choice.
 const FIELD_WIDTH = '21rem'
 const PAGE_SIZE = 10
+// Items become available at the start of the day, in UTC, unless the educator sets another time.
+const FROM_TIME = '00:00'
 
 const dateFieldProps = {
   screenReaderLabels: {
@@ -75,6 +80,17 @@ function TimeLabel({ date, time }: { date: Date; time: string }) {
         <Text size="small" color="secondary">{utcLabel(date, time)}</Text>
       </span>
     </Tooltip>
+  )
+}
+
+// A date with its time on the same line: the day, then the time in UTC. The time shows the viewer's own zone on hover.
+function DateLine({ date, time, bold = false }: { date: Date; time: string; bold?: boolean }) {
+  const t = useSurfaceTokens()
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: t.space.sm }}>
+      <Text weight={bold ? 'bold' : 'normal'}>{fmtShort(date)}</Text>
+      <TimeLabel date={date} time={time} />
+    </div>
   )
 }
 
@@ -119,8 +135,6 @@ export default function FixDatesStep({
   const open = infos.filter((r) => r.needsDecision && !r.choice)
   // Items still on a non-teaching day. A fixed item moves to a teaching day, so it no longer counts.
 
-  const setRow = (id: string, choice: DateChoice, custom = state.rows[id]?.custom ?? '', time?: string) =>
-    setState({ ...state, rows: { ...state.rows, [id]: { choice, custom } }, times: time ? { ...state.times, [id]: time } : state.times })
   // The due time of an item. A time set by hand only counts for a date picked by hand.
   const timeFor = (item: { id: string; time?: string }, byHand: boolean) => (byHand ? state.times?.[item.id] : undefined) ?? timeOf(item)
   // Every item that lands on a non-teaching day follows this choice. "None selected" takes the choice back. Dates changed
@@ -183,6 +197,8 @@ export default function FixDatesStep({
         renderLabel={<Text weight="bold">Last day of the course</Text>}
         interaction="readonly"
         value={endOfCourse ? endOfCourse.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Enter a first day'}
+        // The last day of the old course sits under the field, like the first day of the old course does under the first day.
+        messages={[{ type: 'hint', text: `${courseName ? `${courseName}, Fall 2026,` : 'Fall 2026'} ended on ${FALL_END.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}` }]}
       />
     </div>
   )
@@ -192,17 +208,18 @@ export default function FixDatesStep({
   const dateNote = dateNoteFor(state, included)
 
   const modeCard = (
-    <div style={{ ...cardStyle, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: t.space.md }}>
+    <div style={{ ...cardStyle, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: t.space.md, flex: 1 }}>
       <Text weight="bold" size="large">Date placement</Text>
-      <SimpleSelect
-        renderLabel={<Text weight="bold">Method</Text>}
+      <RadioInputGroup
+        name="date-mode"
+        description={<Text weight="bold">Method</Text>}
         value={state.mode}
-        onChange={(_e, { value }) => setMode(value as DateMode)}
+        onChange={(_e, value) => setMode(value as DateMode)}
       >
         {MODES.map((m) => (
-          <SimpleSelect.Option key={m.id} id={`mode-${m.id}`} value={m.id}>{m.title}</SimpleSelect.Option>
+          <RadioInput key={m.id} value={m.id} label={m.title} />
         ))}
-      </SimpleSelect>
+      </RadioInputGroup>
       <Text as="div" color="secondary">{current.body}</Text>
       {state.mode === 'clear' && (
         <FigmaAlert variant="info" type="inline">
@@ -217,13 +234,17 @@ export default function FixDatesStep({
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xl }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: t.space.md }}>
-          <Button onClick={() => setPreviewOpen(true)}>Course preview</Button>
+          <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
           <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
         </div>
         <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={preview} noteFor={dateNote} />
-        {modeCard}
-        {/* When students see the course: one card, under the date placement. */}
-        <PublishCards opening={opening} setOpening={setOpening} />
+        {/* The date placement and the course publishing are two cards side by side. On a narrow page they stack. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: t.space.lg }}>
+          <div style={{ flex: '1 1 24rem', minWidth: 0, display: 'flex', flexDirection: 'column' }}>{modeCard}</div>
+          <div style={{ flex: '1 1 24rem', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <PublishCards opening={opening} setOpening={setOpening} />
+          </div>
+        </div>
 
       </div>
 
@@ -253,9 +274,9 @@ export default function FixDatesStep({
             <Table.Head themeOverride={noFill}>
               <Table.Row themeOverride={noFill}>
                 <Table.ColHeader themeOverride={noFill} id="item">Item</Table.ColHeader>
-                <Table.ColHeader themeOverride={noFill} id="fall">Fall 2026</Table.ColHeader>
+                <Table.ColHeader themeOverride={noFill} id="fall">Previous due date</Table.ColHeader>
                 <Table.ColHeader themeOverride={noFill} id="check">Check</Table.ColHeader>
-                {!clear && <Table.ColHeader themeOverride={noFill} id="choice">Fixed date</Table.ColHeader>}
+                {!clear && <Table.ColHeader themeOverride={noFill} id="choice">New due date</Table.ColHeader>}
               </Table.Row>
             </Table.Head>
             <Table.Body themeOverride={noFill}>
@@ -267,8 +288,7 @@ export default function FixDatesStep({
                       <Text as="div" size="small" color="secondary">{r.item.kind} · {r.item.module}</Text>
                     </Table.Cell>
                     <Table.Cell themeOverride={noFill}>
-                      <Text as="div">{fmtShort(r.item.old)}</Text>
-                      <TimeLabel date={r.item.old} time={timeOf(r.item)} />
+                      <DateLine date={r.item.old} time={timeOf(r.item)} />
                     </Table.Cell>
                     <Table.Cell themeOverride={noFill}>
                       {/* A date picked by hand can land on a closed day too. Then the check shows only that: one pill and why. */}
@@ -310,8 +330,14 @@ export default function FixDatesStep({
                               <Text color="secondary">Not fixed yet</Text>
                             ) : (
                               <>
-                                <Text as="div" weight="bold">{r.final ? fmtShort(r.final) : ''}</Text>
-                                {r.final && <TimeLabel date={r.final} time={timeFor(r.item, r.choice?.choice === 'custom')} />}
+                                {r.final && <DateLine bold date={r.final} time={timeFor(r.item, r.choice?.choice === 'custom')} />}
+                                {/* The items that have an available-from date show it under the due date. It moves with it. */}
+                                {r.from && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: t.space.sm }}>
+                                    <Text size="small" color="secondary">Available from {fmtShort(r.from)}</Text>
+                                    <TimeLabel date={r.from} time={FROM_TIME} />
+                                  </div>
+                                )}
                                 {r.choice?.choice === 'custom' && (
                                   <Text as="div" size="small" color="secondary">Changed by you</Text>
                                 )}
@@ -346,7 +372,7 @@ export default function FixDatesStep({
                             value={iso(r.final ?? r.base)}
                             time={timeFor(r.item, r.choice?.choice === 'custom')}
                             label={`Change the date and time of ${r.item.title}`}
-                            onPick={(d, time) => setRow(r.item.id, 'custom', d, time)}
+                            onPick={(d, time) => setState({ ...state, rows: { ...state.rows, [r.item.id]: { choice: 'custom', custom: d } }, times: { ...state.times, [r.item.id]: time } })}
                             canReset={r.choice?.choice === 'custom'}
                             onReset={() => {
                               const { [r.item.id]: _row, ...rows } = state.rows
@@ -380,9 +406,8 @@ export default function FixDatesStep({
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {date ? (
                               <>
-                                <Text as="div" weight="bold">{fmtShort(date)}</Text>
+                                <DateLine bold date={date} time={state.times?.[item.id] ?? DEFAULT_TIME} />
                                 {pick === 'last' && <Text as="div" size="small" color="secondary">Last day of the course</Text>}
-                                {date && <TimeLabel date={date} time={state.times?.[item.id] ?? DEFAULT_TIME} />}
                                 {pick !== 'last' && <Text as="div" size="small" color="secondary">Set by you</Text>}
                                 {date && closedName(date) && (
                                   <div style={{ marginTop: t.space.xs, display: 'flex', flexDirection: 'column', gap: t.space.xs, alignItems: 'flex-start' }}>

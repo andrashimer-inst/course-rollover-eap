@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, Link, IconArrowOpenDownSolid, IconArrowOpenEndSolid, IconAssignmentLine, Tabs, Text } from '@instructure/ui/v11_7'
+import { Button, Link, IconArrowOpenDownSolid, IconArrowOpenEndSolid, IconAssignmentLine, IconAnalyticsLine, Tabs, Text } from '@instructure/ui/v11_7'
 import StatusPill from './StatusPill'
 import ReadinessLoading from './ReadinessLoading'
-import { CoursePreview, ItemPreviewModal, PREVIEW_KINDS } from './ContentStep'
+import { CoursePreview, ItemPreviewModal } from './ContentStep'
 import type { PreviewItem } from './ContentStep'
 import { dateNoteFor } from './dateNote'
-import { CONTENT_TYPES, MODULE_ENTRIES } from './courseContentData'
+import { CONTENT_TYPES, MODULE_ENTRIES, ORIGIN, PREVIEW_KINDS, PREVIEW_NOTE } from './courseContentData'
 import type { CopyMode, Picked, Scope } from './contentHelpers'
 import { STATUS_LABEL, dimensionsOf, openingLabel, readiness } from './reviewCopyData'
 import type { Opening } from './reviewCopyData'
@@ -107,7 +107,7 @@ export default function ReviewAndCopyStep({
   // Each item shows the decision made for it in the review, the same pills as in the learning object review.
   // The learning objects copied on their own (not in a module), grouped by type, with the decisions made for each.
   const inModule = new Set([...Object.values(MODULE_ENTRIES).flatMap((es) => es.map((e) => e.itemId)), ...MODULES.map((m) => m.id)])
-  const pillColor = (c: Choice) => (c === 'fix' ? 'warning' : c === 'leave' ? 'error' : 'success') as 'warning' | 'error' | 'success'
+  const pillColor = (c: Choice) => (c === 'fix' ? 'warning' : c === 'leave' ? 'neutral' : 'success') as 'warning' | 'neutral' | 'success'
   const objectItems = [...new Set(rows.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r))).map((r) => itemIdOf(r)))].map((id) => {
     const own = rows.filter((r) => itemIdOf(r) === id)
     const first = own[0]
@@ -116,7 +116,7 @@ export default function ReviewAndCopyStep({
       .filter((c): c is Choice => c !== undefined)
       .filter((c, n, all) => all.indexOf(c) === n)
       .map((c) => ({ label: choiceLabel(first, c), color: pillColor(c) }))
-    return { id, title: first.title, kind: first.kindLabel, group: first.group, decisions, left: decisions.some((d) => d.color === 'error') }
+    return { id, title: first.title, kind: first.kindLabel, group: first.group, decisions, left: decisions.some((d) => d.color === 'neutral') }
   })
   const objectCopied = objectItems.filter((i) => !i.left).length
   const objectGroups = [...new Set(objectItems.map((i) => i.group))].map((g) => [g, objectItems.filter((i) => i.group === g)] as const)
@@ -131,7 +131,7 @@ export default function ReviewAndCopyStep({
     return (
       <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: t.space.sm, justifyContent: 'flex-end' }}>
         {row && c && (
-          <StatusPill size="xs" color={c === 'fix' ? 'warning' : c === 'leave' ? 'error' : 'success'}>
+          <StatusPill size="xs" color={c === 'fix' ? 'warning' : c === 'leave' ? 'neutral' : 'success'}>
             {choiceLabel(row, c)}
           </StatusPill>
         )}
@@ -168,7 +168,7 @@ export default function ReviewAndCopyStep({
                 <Text as="div" weight="bold" size="large">Course readiness check</Text>
                 <Text as="div" color="secondary">The check goes through the readiness criteria of your account and your choices in the review.</Text>
               </div>
-              <Button color={readyRan ? 'secondary' : 'primary'} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
+              <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
                 {running ? 'Checking…' : readyRan ? 'Check' : 'Run readiness check'}
               </Button>
             </div>
@@ -228,7 +228,7 @@ export default function ReviewAndCopyStep({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
                   <Text as="div" weight="bold" size="large">Learning objects</Text>
                   <Text as="div" color="secondary">
-                    {objectCopied} of {objectItems.length} learning objects will be copied.
+                    {objectCopied} of {objectItems.length} learning objects will be copied. {PREVIEW_NOTE}
                   </Text>
                 </div>
                 </div>
@@ -256,13 +256,13 @@ export default function ReviewAndCopyStep({
                           list.map((i) => (
                             <div
                               key={i.id}
-                              onClick={PREVIEW_KINDS.has(i.kind) ? () => setOpenItem({ title: i.title, kind: i.kind, where: 'Not in a module', origin: 'New' }) : undefined}
+                              onClick={PREVIEW_KINDS.has(i.kind) ? () => setOpenItem({ title: i.title, kind: i.kind, where: 'Not in a module', origin: ORIGIN.incoming }) : undefined}
                               style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between', padding: t.space.md, borderTop: `${t.borderWidth} solid ${t.borderColor}`, cursor: PREVIEW_KINDS.has(i.kind) ? 'pointer' : undefined }}
                             >
                               <div style={{ minWidth: 0 }}>
                                 <Text as="div" weight="bold">
                                   {/* Pages, assignments, quizzes and files can be looked at. The rest stay as text. */}
-                                  {PREVIEW_KINDS.has(i.kind) ? <Link as="button" onClick={() => setOpenItem({ title: i.title, kind: i.kind, where: 'Not in a module', origin: 'New' })}>{i.title}</Link> : i.title}
+                                  {PREVIEW_KINDS.has(i.kind) ? <Link as="button" onClick={() => setOpenItem({ title: i.title, kind: i.kind, where: 'Not in a module', origin: ORIGIN.incoming })}>{i.title}</Link> : i.title}
                                 </Text>
                                 <Text as="div" size="small" color="secondary">{i.kind}</Text>
                               </div>

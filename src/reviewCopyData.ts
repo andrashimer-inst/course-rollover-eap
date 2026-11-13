@@ -80,8 +80,10 @@ export function buildTodo(args: {
   opening: Opening
   // The learning objects that are copied. Date entries are only for those.
   included?: Included
+  // The dates entries come once the dates step is reached. Before that the dates are not set yet.
+  withDates?: boolean
 }): TodoItem[] {
-  const { rows, choices, dates, comments, opening, included = all } = args
+  const { rows, choices, dates, comments, opening, included = all, withDates = true } = args
   const dated = DATE_ITEMS.filter((i) => included(i.itemId))
   const undated = NO_DATE_ITEMS.filter((i) => included(i.itemId))
   const todo: TodoItem[] = []
@@ -104,7 +106,9 @@ export function buildTodo(args: {
     todo.push({ group: 'Do it yourself', title: c.text, detail: `${c.item} (${c.area})`, content: `${c.item} (${c.area})`, tag: c.area, tone: 'info' })
   }
 
-  if (dates.mode === 'clear') {
+  if (!withDates) {
+    // Nothing yet: the dates are set in step 4.
+  } else if (dates.mode === 'clear') {
     todo.push({ group: 'Set the dates', tag: 'No dates', tone: 'info', title: 'Set the dates of all items', detail: `${dated.length} items are copied with no date. They are listed on the course Settings page.` })
   } else {
     for (const item of dated) {

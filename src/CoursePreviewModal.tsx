@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { CloseButton, Heading, IconArrowOpenStartSolid, IconButton, Modal, Tabs } from '@instructure/ui/v11_7'
+import { CloseButton, Heading, IconArrowOpenStartSolid, IconButton, Modal, Tabs, Text } from '@instructure/ui/v11_7'
 import { CoursePreview, ItemPreviewBody, ObjectsPreview } from './ContentStep'
 import type { PreviewItem } from './ContentStep'
 import { withPulledIn } from './contentHelpers'
 import type { Picked, Scope } from './contentHelpers'
+import { PREVIEW_NOTE } from './courseContentData'
 import { useSurfaceTokens } from './appTheme'
 
 // The course as it will look after the copy, in a window: the modules on one tab and the learning objects on the other.
@@ -53,6 +54,8 @@ export default function CoursePreviewModal({
         {item ? (
           <ItemPreviewBody item={item} />
         ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
+          <Text as="div" color="secondary">{PREVIEW_NOTE}</Text>
           <Tabs onRequestTabChange={(_e, { index }) => setTab(index)}>
             <Tabs.Panel id="preview-modules" renderTitle="Modules" isSelected={tab === 0} padding="general.spaceMd 0 0 0">
               <CoursePreview bare moduleIds={source.moduleIds} keepCurrent={source.keepCurrent} highlightNew hidden={source.hidden} noteFor={noteFor} onOpenItem={setItem} />
@@ -61,6 +64,7 @@ export default function CoursePreviewModal({
               <ObjectsPreview bare scope={source.scope} picked={withPulledIn(source.picked)} keepCurrent={source.keepCurrent} noteFor={noteFor} onOpenItem={setItem} />
             </Tabs.Panel>
           </Tabs>
+          </div>
         )}
       </Modal.Body>
     </Modal>

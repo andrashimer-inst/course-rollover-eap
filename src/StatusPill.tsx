@@ -27,12 +27,15 @@ export default function StatusPill({
   color = 'neutral',
   size = 'md',
   icon,
+  colors,
 }: {
   children: ReactNode
   color?: Color
   size?: Size
   // An icon before the label. It takes the pill's text color and size.
   icon?: ReactNode
+  // Own colors, for a pill on a colored bar, like a white pill on a blue bar.
+  colors?: { background: string; text: string }
 }) {
   const key = useAppThemeKey()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,6 +67,12 @@ export default function StatusPill({
     background = `color-mix(in srgb, ${red} 14%, transparent)`
     border = `color-mix(in srgb, ${red} 30%, transparent)`
     text = cssColor(semantic.color.text.error)
+  }
+
+  if (colors) {
+    background = colors.background
+    text = colors.text
+    border = colors.background
   }
 
   return (
