@@ -187,7 +187,6 @@ export type WizardDraft = {
 
 // ---- The wizard ----------------------------------------------------------------------------------------------
 export default function RolloverWizard({
-  commentsFor,
   adjustDates,
   courseNav,
   onNavigate,
@@ -219,10 +218,8 @@ export default function RolloverWizard({
   );
   // The steps start empty. Each step needs a choice before the next one opens.
   const [course, setCourse] = useState(draft?.course ?? "");
-  const comments = useMemo(
-    () => (course ? commentsFor(course) : []),
-    [commentsFor, course],
-  );
+  // Team notes are not part of this version, so the review and the to-do list start without them.
+  const comments = useMemo<EducatorComment[]>(() => [], []);
   // The whole course is selected when the step opens. A choice made later is kept.
   const [scope, setScope] = useState<Scope | null>(draft?.scope ?? "whole");
   const [picked, setPicked] = useState<Picked>(draft?.picked ?? {});

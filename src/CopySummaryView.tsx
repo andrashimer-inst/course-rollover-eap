@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { Button, IconDownloadLine, IconEmailLine, IconExportLine, IconSearchLine, Link, Metric, ScreenReaderContent, SimpleSelect, Table, Tabs, Text, TextInput } from '@instructure/ui/v11_7'
 import AdminHelpModal from './AdminHelpModal'
-import { ItemPreviewModal } from './ContentStep'
-import type { PreviewItem } from './ContentStep'
 import { previewItemOf } from './courseContentData'
 import AutoSelect from './AutoSelect'
 import Pager from './Pager'
@@ -68,7 +66,12 @@ export function SummaryView({
   // The to-do list sent to the educator by message, in the same window as the message to the admin in the learning object review.
   const [helpOpen, setHelpOpen] = useState(false)
   // The learning object that was clicked in the to-do list. It opens in the preview window.
-  const [openItem, setOpenItem] = useState<PreviewItem | null>(null)
+  // The link would open the item in a new tab of Canvas. That is not part of the prototype, so a message says so.
+  const [toast, setToast] = useState(false)
+  const showToast = () => {
+    setToast(true)
+    window.setTimeout(() => setToast(false), 5000)
+  }
 
   // What was not copied. A failure is an error, not a decision, so it has a red pill and is on the to-do list.
   type NotCopied = { item: string; reason: string; kind: 'failed' | 'left-out' | 'canvas' | 'attention'; canBring: boolean }
@@ -237,7 +240,7 @@ export function SummaryView({
                               // The item is a link only when it has a preview. The module it is in stays as text.
                               previewItemOf(grp.content) ? (
                                 <>
-                                  <Link as="button" onClick={() => setOpenItem(previewItemOf(grp.content))}>{grp.content.split(', in ')[0]}</Link>
+                                  <Link as="button" onClick={showToast}>{grp.content.split(', in ')[0]}</Link>
                                   {grp.content.includes(', in ') && `, in ${grp.content.split(', in ').slice(1).join(', in ')}`}
                                 </>
                               ) : (
@@ -413,7 +416,13 @@ export function SummaryView({
       </section>
       )}
 
-      <ItemPreviewModal item={openItem} onClose={() => setOpenItem(null)} />
+      {toast && (
+        <div style={{ position: 'fixed', insetBlockEnd: t.space.xl, insetInlineStart: '50%', transform: 'translateX(-50%)', zIndex: 10000, maxWidth: 'calc(100vw - 2rem)' }}>
+          <FigmaAlert variant="info" type="floating" dismissible onDismiss={() => setToast(false)} closeLabel="Close message">
+            This link opens the item in a new tab. That is not part of this prototype.
+          </FigmaAlert>
+        </div>
+      )}
       <AdminHelpModal
         open={helpOpen}
         items={todoAll.map((x) => ({ title: x.title, detail: x.detail }))}

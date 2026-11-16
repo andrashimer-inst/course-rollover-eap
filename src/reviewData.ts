@@ -65,6 +65,7 @@ const KIND_LABEL: Record<TypeId, string> = {
 
 // Where the check found something, by item id. The detail is why this item was flagged.
 const HITS: Record<string, { rule: string; detail: string }[]> = {
+  'modules:3': [{ rule: 'unused', detail: 'No student opened this module last term.' }],
   'assignments:5': [{ rule: 'assignments', detail: 'This assignment is still a draft, so students cannot see it.' }],
   'assignments:4': [
     { rule: 'assignments', detail: 'This assignment is still a draft, so students cannot see it.' },

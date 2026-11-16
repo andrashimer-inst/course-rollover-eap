@@ -14,6 +14,7 @@ import {
   Tabs,
   IconAssignmentLine,
   IconAnalyticsLine,
+  IconInfoLine,
   IconEmailLine,
   IconEyeLine,
   Metric,
@@ -26,6 +27,7 @@ import { dimensionsOf, readiness } from './reviewCopyData'
 import AdminHelpModal from './AdminHelpModal'
 import type { TodoItem } from './rolloverData'
 import CoursePreviewModal from './CoursePreviewModal'
+import CriteriaModal from './CriteriaModal'
 import { CONTENT_TYPES, MODULE_ENTRIES } from './courseContentData'
 import type { Picked, Scope, CopyMode } from './contentHelpers'
 import { CHOICES, CHOICE_LABEL, NOTE_LABEL, RULE_LABEL, choiceLabel, choiceOf, hiddenModules, itemIdOf } from './reviewData'
@@ -71,6 +73,7 @@ export default function LearningObjectReview({
   const [tab, setTab] = useState(0)
   const [checking, setChecking] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [criteriaOpen, setCriteriaOpen] = useState(false)
   // The action picked in the bulk bar. It is only applied to the ticked rows when the educator chooses Apply.
   const [bulk, setBulk] = useState<Choice | ''>('')
   // The bulk bar always opens on "Select action": when no row is ticked any more, the action picked is forgotten.
@@ -86,6 +89,11 @@ export default function LearningObjectReview({
   const wholeRows = shown.filter((r) => r.courseWide)
   const moduleRows = shown.filter((r) => !r.courseWide && inModule.has(itemIdOf(r)))
   const standaloneRows = shown.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r)))
+
+  // The filter above the table. It is shared by the three tabs. It counts the rows of the table, so the numbers match the findings.
+  const [filter, setFilter] = useState<'all' | 'none' | 'found'>('all')
+  const countOf = (list: ReviewRow[], f: 'all' | 'none' | 'found') => list.filter((r) => f === 'all' || (f === 'found') === r.hasSuggestion).length
+  const filtered = (list: ReviewRow[]) => list.filter((r) => filter === 'all' || (filter === 'found') === r.hasSuggestion)
 
   // Findings still to review in each tab: the rows with no action chosen yet. It shows on the tab, so it is clear where work is left.
   const left = (list: ReviewRow[]) => list.filter((r) => !done(r)).length
@@ -366,12 +374,27 @@ export default function LearningObjectReview({
   }
 
   // The buttons under the tabs.
-  const filterRow = (
+  const filterRow = (list: ReviewRow[]) => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: t.space.sm }}>
+        <Text weight="bold">Filter</Text>
+        <div style={{ width: '16rem', maxWidth: '100%' }}>
+          <SimpleSelect
+            renderLabel={<ScreenReaderContent>Filter items</ScreenReaderContent>}
+            value={filter}
+            onChange={(_e, { value }) => { setFilter(String(value) as 'all' | 'none' | 'found'); setSelected([]) }}
+          >
+            <SimpleSelect.Option id="filter-all" value="all">{`All items (${countOf(list, 'all')})`}</SimpleSelect.Option>
+            <SimpleSelect.Option id="filter-none" value="none">{`Nothing found (${countOf(list, 'none')})`}</SimpleSelect.Option>
+            <SimpleSelect.Option id="filter-found" value="found">{`Has findings (${countOf(list, 'found')})`}</SimpleSelect.Option>
+          </SimpleSelect>
+        </div>
+      </div>
       {/* The check, preview, message and to-do buttons at the end of the row, under the tabs. */}
       <div style={{ marginInlineStart: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.md }}>
         {messageSent && <StatusPill size="sm" color="success">Message sent to your admin</StatusPill>}
         {/* Check acts on the findings, so it stands apart from the buttons that only open something. */}
+        <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
         <Button renderIcon={<IconAnalyticsLine />} onClick={() => setChecking(true)}>Run check</Button>
         <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
         <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
@@ -437,18 +460,18 @@ export default function LearningObjectReview({
       }}>
         <Tabs.Panel id="tab-modules" renderTitle={`Modules (${moduleLeft})`} isSelected={tab === 0} padding="general.spaceMd 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
-            {filterRow}
+            {filterRow(moduleRows)}
             {bulkBar('Bulk actions')}
-          {moduleRows.length > 0 ? reviewTable(moduleRows, 'Learning objects in modules', 'Modules') : <Text as="p">No items in modules to review.</Text>}
+          {moduleRows.length > 0 ? filtered(moduleRows).length > 0 ? reviewTable(filtered(moduleRows), 'Learning objects in modules', 'Modules') : <Text as="p">No items match this filter.</Text> : <Text as="p">No items in modules to review.</Text>}
           </div>
         </Tabs.Panel>
         <Tabs.Panel id="tab-objects" renderTitle={`Learning objects (${objectsLeft})`} isSelected={tab === 1} padding="general.spaceMd 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
-            {filterRow}
+            {filterRow(standaloneRows)}
             {bulkBar('Bulk actions')}
           {/* This tab lists what you chose on the previous page that is copied without a module. */}
           {standaloneRows.length > 0 ? (
-            reviewTable(standaloneRows, 'Learning objects copied on their own', 'Learning objects')
+            filtered(standaloneRows).length > 0 ? reviewTable(filtered(standaloneRows), 'Learning objects copied on their own', 'Learning objects') : <Text as="p">No items match this filter.</Text>
           ) : (
             <div
               style={card ? { background: t.containerColor, borderRadius: t.radiusCardMd, boxShadow: t.shadowResting, padding: t.space.lg } : undefined}
@@ -467,15 +490,16 @@ export default function LearningObjectReview({
         </Tabs.Panel>
         <Tabs.Panel id="tab-course" renderTitle={`General items (${generalLeft})`} isSelected={tab === 2} padding="general.spaceMd 0 0 0">
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
-            {filterRow}
+            {filterRow(wholeRows)}
             {bulkBar('Bulk actions')}
-          {wholeRows.length > 0 ? reviewTable(wholeRows, 'Issues that affect the whole course', 'General items') : <Text as="p">No items to review.</Text>}
+          {wholeRows.length > 0 ? filtered(wholeRows).length > 0 ? reviewTable(filtered(wholeRows), 'Issues that affect the whole course', 'General items') : <Text as="p">No items match this filter.</Text> : <Text as="p">No items to review.</Text>}
           </div>
         </Tabs.Panel>
       </Tabs>
       </>)}
       {/* The course as it will look after the copy, with the choice made for each item. */}
       <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={previewNote} />
+      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} />
       <AdminHelpModal open={helpOpen} items={(rows.filter((r) => r.hasSuggestion && !done(r)).length ? rows.filter((r) => r.hasSuggestion && !done(r)) : rows.filter((r) => r.hasSuggestion)).map((r) => ({ title: r.title, detail: r.findings.map((f) => f.detail).join(' ') || r.note?.text || '' }))} onClose={() => setHelpOpen(false)} onSend={() => setMessageSent(true)} />
     </div>
   )

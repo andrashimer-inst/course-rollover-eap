@@ -222,6 +222,8 @@ export default function ContentStep({
   const allKeys = CONTENT_TYPES.flatMap(keys)
   const allCount = allKeys.filter((k) => picked[k]).length
   const itemCount = allKeys.filter((k) => picked[k] && !k.startsWith('modules:')).length
+  // With the whole course, every learning object is copied.
+  const wholeCount = allKeys.filter((k) => !k.startsWith('modules:')).length
 
   const comingModules = scope === 'whole' ? MODULES : MODULES.filter((m) => picked[m.id])
   const keepCurrent = scope === 'part' && mode === 'merge'
@@ -260,7 +262,7 @@ export default function ContentStep({
       </RadioInputGroup>
       {scope === 'whole' && (
         <>
-          <Text as="div" color="secondary">{`${MODULES.length} modules and all learning objects.`}</Text>
+          <Text as="div" color="secondary">{`${wholeCount} ${wholeCount === 1 ? 'item' : 'items'} will be copied.`}</Text>
           <FigmaAlert variant="warning" type="inline">
             Copying the whole course replaces the content copied here before. Content you added yourself stays in the course.
           </FigmaAlert>

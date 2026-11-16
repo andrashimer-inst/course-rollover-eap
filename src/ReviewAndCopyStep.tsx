@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, IconAssignmentLine, IconAnalyticsLine, IconEyeLine, Text } from '@instructure/ui/v11_7'
+import { Button, IconAssignmentLine, IconAnalyticsLine, IconEyeLine, IconInfoLine, Text } from '@instructure/ui/v11_7'
 import StatusPill from './StatusPill'
 import ReadinessLoading from './ReadinessLoading'
 import ReadinessResults from './ReadinessResults'
 import CoursePreviewModal from './CoursePreviewModal'
+import CriteriaModal from './CriteriaModal'
 import { dateNoteFor } from './dateNote'
 import { CONTENT_TYPES } from './courseContentData'
 import type { CopyMode, Picked, Scope } from './contentHelpers'
@@ -49,6 +50,7 @@ export default function ReviewAndCopyStep({
 
   // The course preview window.
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [criteriaOpen, setCriteriaOpen] = useState(false)
   const ready = useMemo(() => readiness(rows, choices), [rows, choices])
   const groups = useMemo(() => dimensionsOf(ready), [ready])
 
@@ -139,9 +141,12 @@ export default function ReviewAndCopyStep({
                 <Text as="div" weight="bold" size="large">Course readiness check</Text>
                 <Text as="div" color="secondary">The check goes through the readiness criteria of your account and your choices in the review.</Text>
               </div>
-              <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
-                {running ? 'Checking…' : 'Run check'}
-              </Button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.sm }}>
+                <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
+                <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
+                  {running ? 'Checking…' : 'Run check'}
+                </Button>
+              </div>
             </div>
             <div style={{ marginTop: t.space.lg }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
@@ -158,6 +163,7 @@ export default function ReviewAndCopyStep({
             </div>
           </div>
           </div>
+      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} />
       <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={noteFor} />
     </div>
   )

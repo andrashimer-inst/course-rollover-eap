@@ -44,7 +44,7 @@ export default function DatePickerButton({
       <div style={{ padding: '1rem', width: '18rem', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <DateTimeInput
           description={<ScreenReaderContent>Date and time</ScreenReaderContent>}
-          dateRenderLabel={<Text weight="bold">Date</Text>}
+          dateRenderLabel={<Text weight="bold">New due date</Text>}
           timeRenderLabel={<Text weight="bold">Time (UTC)</Text>}
           invalidDateTimeMessage="Enter a valid date and time"
           screenReaderLabels={{
