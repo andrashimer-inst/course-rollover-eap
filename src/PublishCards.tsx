@@ -1,6 +1,6 @@
 import { Checkbox, DateInput, RadioInput, RadioInputGroup, SimpleSelect, Text } from '@instructure/ui/v11_7'
 import type { Opening } from './reviewCopyData'
-import { useSurfaceTokens } from './appTheme'
+import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 
 // When students see the course: publish on a day and time, or publish by hand. It is one card in the dates step, under the
 // date placement. A dropdown picks the way, and the day and time show under it when the course publishes by itself.
@@ -17,13 +17,12 @@ const TIMES = Array.from({ length: 48 }, (_, i) => {
 export default function PublishCards({ opening, setOpening }: { opening: Opening; setOpening: (o: Opening) => void }) {
   const t = useSurfaceTokens()
   const auto = opening.mode === 'open'
+  // Legacy is flat: the publishing options sit on the page, not in a card.
+  const card = useAppThemeKey() !== 'legacy'
   return (
     <div
       style={{
-        background: t.containerColor,
-        borderRadius: t.radiusCardMd,
-        boxShadow: t.shadowResting,
-        padding: t.space.lg,
+        ...(card ? { background: t.containerColor, borderRadius: t.radiusCardMd, boxShadow: t.shadowResting, padding: t.space.lg } : {}),
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
@@ -38,8 +37,8 @@ export default function PublishCards({ opening, setOpening }: { opening: Opening
         value={opening.mode}
         onChange={(_e, value) => setOpening({ ...opening, mode: value as Opening['mode'] })}
       >
-        <RadioInput value="open" label="Automatically, on a set day" />
         <RadioInput value="self" label="Manually" />
+        <RadioInput value="open" label="Automatically, on a set day" />
       </RadioInputGroup>
       <Text as="div" color="secondary">
         {auto ? 'Hidden from students until the day and time below.' : 'The course stays hidden until you publish it.'}

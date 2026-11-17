@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Button, IconDownloadLine, IconEmailLine, IconExportLine, IconSearchLine, Link, Metric, ScreenReaderContent, SimpleSelect, Table, Tabs, Text, TextInput } from '@instructure/ui/v11_7'
+import { Button, IconDownloadLine, IconEmailLine, IconAnalyticsLine, IconExportLine, IconExternalLinkLine, IconSearchLine, Link, Metric, ScreenReaderContent, SimpleSelect, Table, Tabs, Text, TextInput } from '@instructure/ui/v11_7'
 import AdminHelpModal from './AdminHelpModal'
 import { previewItemOf } from './courseContentData'
 import AutoSelect from './AutoSelect'
 import Pager from './Pager'
 import ReadinessResults from './ReadinessResults'
+import ReadinessLoading from './ReadinessLoading'
 import FigmaAlert from './FigmaAlert'
 import StatusPill from './StatusPill'
 import { PEOPLE } from './copyHistory'
@@ -58,6 +59,8 @@ export function SummaryView({
   const [typeFilter, setTypeFilter] = useState('all')
   const [personFilter, setPersonFilter] = useState('all')
   const [tab, setTab] = useState(0)
+  // The check can be run again here. It goes through the areas, then shows the result again.
+  const [checking, setChecking] = useState(false)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   // Clicking a column title of the history orders it by that column. A second click turns the order around.
@@ -164,13 +167,17 @@ export function SummaryView({
         <Tabs onRequestTabChange={(_e, { index }) => setTab(index)}>
           <Tabs.Panel id="tab-not-copied" renderTitle={`Not copied (${notCopied.length})`} isSelected={tab === 0} padding="general.spaceXl 0 0 0">
             <section aria-label="Not copied" style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
-                <Text as="div" weight="bold" size="large">Not copied</Text>
-                <Text as="div" color="secondary">
-                  {notCopied.length === 0
-                    ? 'Everything you chose was copied.'
-                    : 'These items were not copied. Items that failed are on your to-do list so you can fix them.'}
-                </Text>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
+                  <Text as="div" weight="bold" size="large">Not copied</Text>
+                  <Text as="div" color="secondary">
+                    {notCopied.length === 0
+                      ? 'Everything you chose was copied.'
+                      : 'These items were not copied. Items that failed are on your to-do list so you can fix them.'}
+                  </Text>
+                </div>
+                {/* The source course opens in a new tab, which is not part of this prototype. */}
+                <Button renderIcon={<IconExternalLinkLine />} onClick={showToast}>Open source course</Button>
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {notCopied.map((n) => (
@@ -194,9 +201,20 @@ export function SummaryView({
           </Tabs.Panel>
           <Tabs.Panel id="tab-check" renderTitle="Course check" isSelected={tab === 1} padding="general.spaceXl 0 0 0">
             <section aria-label="Course check" style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
-              <Text as="div" weight="bold" size="large">Course readiness check</Text>
-              <Text as="div" color="secondary">How the course stood against the readiness criteria of your account when it was copied.</Text>
-              <ReadinessResults groups={summary.check} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
+                  <Text as="div" weight="bold" size="large">Course readiness check</Text>
+                  <Text as="div" color="secondary">How the course stood against the readiness criteria of your account, and the checks of the copy (links, unused items and dates).</Text>
+                </div>
+                <Button renderIcon={<IconAnalyticsLine />} interaction={checking ? 'disabled' : 'enabled'} onClick={() => setChecking(true)}>
+                  {checking ? 'Checking…' : 'Run check'}
+                </Button>
+              </div>
+              {checking ? (
+                <ReadinessLoading areas={summary.check.map((g) => g.dimension)} onDone={() => setChecking(false)} />
+              ) : (
+                <ReadinessResults groups={summary.check} />
+              )}
             </section>
           </Tabs.Panel>
           <Tabs.Panel id="tab-todo" renderTitle={`To-do list (${todoAll.length})`} isSelected={tab === 2} padding="general.spaceXl 0 0 0">
@@ -419,7 +437,7 @@ export function SummaryView({
       {toast && (
         <div style={{ position: 'fixed', insetBlockEnd: t.space.xl, insetInlineStart: '50%', transform: 'translateX(-50%)', zIndex: 10000, maxWidth: 'calc(100vw - 2rem)' }}>
           <FigmaAlert variant="info" type="floating" dismissible onDismiss={() => setToast(false)} closeLabel="Close message">
-            This link opens the item in a new tab. That is not part of this prototype.
+            This link opens in a new tab. That is not part of this prototype.
           </FigmaAlert>
         </div>
       )}

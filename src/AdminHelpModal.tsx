@@ -27,6 +27,7 @@ export type MessageDraft = { to: string; subject: string; message: (list: string
 // open (the admin is filled in, and it can be changed), and the subject and message are filled in from the items that
 // still need help. Nothing is sent anywhere: this is a prototype.
 
+const COURSES = ['Cell Biology', 'World History', 'Intro to Design']
 const LANGUAGES = ['Spanish', 'French', 'German', 'Portuguese', 'Hungarian', 'Arabic', 'Simplified Chinese']
 
 export default function AdminHelpModal({
@@ -56,6 +57,7 @@ function Form({ items, onClose, onSend, draft }: { items: HelpItem[]; onClose: (
   const [message, setMessage] = useState(
     draft ? draft.message(list) : `Hi,\n\nI am copying content into my course and the review found problems I need help with.\n\n${list}\n\nCan you help me fix them before the term starts?\n\nThank you`,
   )
+  const [course, setCourse] = useState('Cell Biology')
   const [translate, setTranslate] = useState(false)
   const [language, setLanguage] = useState('')
   const [placement, setPlacement] = useState('')
@@ -67,6 +69,13 @@ function Form({ items, onClose, onSend, draft }: { items: HelpItem[]; onClose: (
       </Modal.Header>
       <Modal.Body>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {!draft && (
+            <SimpleSelect renderLabel={<Text weight="bold">Course</Text>} value={course} onChange={(_e, { value }) => setCourse(String(value))}>
+              {COURSES.map((c) => (
+                <SimpleSelect.Option key={c} id={`course-${c}`} value={c}>{c}</SimpleSelect.Option>
+              ))}
+            </SimpleSelect>
+          )}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <TextInput

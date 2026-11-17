@@ -477,7 +477,7 @@ export function ObjectsPreview({ scope, picked, keepCurrent, description = '', h
 
 // How the course looks with the modules that are copied: grey module bars with their items under them.
 export function CoursePreview({
-  moduleIds, keepCurrent, highlightNew, hidden, hiddenItems, noteFor, title, titleSize = 'large', description, headerExtra, bare = false, onOpenItem,
+  moduleIds, keepCurrent, highlightNew, hidden, hiddenItems, noteFor, metaFor, title, titleSize = 'large', description, headerExtra, bare = false, onOpenItem,
 }: {
   moduleIds: string[]
   keepCurrent: boolean
@@ -487,6 +487,8 @@ export function CoursePreview({
   // Items left out of the copy are not shown, and an item can carry a note (like an AI fix).
   hiddenItems?: Set<string>
   noteFor?: (itemId: string) => ReactNode
+  // Changes the line under an item, like showing the new dates instead of the old one.
+  metaFor?: (itemId: string, meta: string) => ReactNode
   // `false` leaves the title out and keeps the description.
   title?: string | false
   // The size of the title. Step 2 uses the size of the card title beside it.
@@ -600,7 +602,7 @@ export function CoursePreview({
                     {/* A link, so the item can be opened with the keyboard as well. */}
                     {onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? <Link as="button" onClick={() => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier })}>{e.title}</Link> : e.title}
                   </Text>
-                  <Text as="div" size="small" color="secondary">{e.meta}</Text>
+                  <Text as="div" size="small" color="secondary">{metaFor ? metaFor(e.itemId, e.meta) : e.meta}</Text>
                 </span>
                 {noteFor?.(e.itemId)}
               </div>

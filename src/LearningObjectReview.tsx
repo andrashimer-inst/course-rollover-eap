@@ -126,6 +126,9 @@ export default function LearningObjectReview({
       <StatusPill size="xs" color={c === 'fix' ? 'warning' : c === 'leave' ? 'neutral' : 'success'}>
         {choiceLabel(r, c)}
       </StatusPill>
+    ) : r?.hasSuggestion ? (
+      // Items with a finding that still wait for a choice.
+      <StatusPill size="xs" color="neutral">Select an action</StatusPill>
     ) : null
   }
   const moduleIds = scope === 'whole' ? MODULES.map((m) => m.id) : MODULES.filter((m) => picked[m.id]).map((m) => m.id)
@@ -181,7 +184,7 @@ export default function LearningObjectReview({
                 renderLabel={<ScreenReaderContent>Bulk action</ScreenReaderContent>}
                 placeholder="Select action"
                 value={bulk}
-                onChange={(_e, { value }) => setBulk(String(value) as Choice | '')}
+                onChange={(_e, { value }) => { const c = String(value) as Choice | ''; if (c && pending(c) > 0) run(c); setBulk('') }}
               >
                 {/* The empty option keeps the field on "Select action", so no real choice looks picked before it is. */}
                 <SimpleSelect.Option id="bulk-none" value="">Select action</SimpleSelect.Option>
@@ -190,8 +193,13 @@ export default function LearningObjectReview({
                 ))}
               </SimpleSelect>
             </div>
-            <Button size="small" color="primary" interaction={bulk && pending(bulk) > 0 ? 'enabled' : 'disabled'} onClick={() => { if (bulk) { run(bulk); setBulk('') } }}>
-              Apply
+            <Button
+              size="small"
+              color="secondary"
+              interaction={rows.some((r) => selected.includes(r.id) && choices[r.id] !== undefined) ? 'enabled' : 'disabled'}
+              onClick={() => { const next = { ...choices }; for (const r of rows) if (selected.includes(r.id)) delete next[r.id]; setChoices(next) }}
+            >
+              Reset choices
             </Button>
             <Button size="small" color="secondary" onClick={() => { setSelected([]); setBulk('') }}>Clear selection</Button>
           </div>
@@ -330,7 +338,7 @@ export default function LearningObjectReview({
                           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.md }}>
                             {r.findings.map((f) => (
                               <div key={f.rule.id + f.detail}>
-                                <StatusPill size="sm" color={f.rule.severity === 'critical' ? 'error' : 'warning'}>
+                                <StatusPill size="sm" color={f.rule.severity === 'critical' || f.rule.id.startsWith('a11y') ? 'error' : 'warning'}>
                                   {RULE_LABEL[f.rule.id] ?? f.rule.title}
                                 </StatusPill>
                                 <Text as="div">{f.detail}</Text>
@@ -499,7 +507,7 @@ export default function LearningObjectReview({
       </>)}
       {/* The course as it will look after the copy, with the choice made for each item. */}
       <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={previewNote} />
-      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} />
+      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
       <AdminHelpModal open={helpOpen} items={(rows.filter((r) => r.hasSuggestion && !done(r)).length ? rows.filter((r) => r.hasSuggestion && !done(r)) : rows.filter((r) => r.hasSuggestion)).map((r) => ({ title: r.title, detail: r.findings.map((f) => f.detail).join(' ') || r.note?.text || '' }))} onClose={() => setHelpOpen(false)} onSend={() => setMessageSent(true)} />
     </div>
   )

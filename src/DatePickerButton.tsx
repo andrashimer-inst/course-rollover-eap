@@ -6,7 +6,7 @@ import { Button, CalendarInstUIIcon, DateTimeInput, IconButton, Popover, ScreenR
 // The choice is only handed back when the educator chooses Apply.
 
 export default function DatePickerButton({
-  value, time, label, onPick, onReset, canReset = false,
+  value, time, label, onPick, onReset, canReset = false, dateLabel = 'New due date',
 }: {
   value: string
   time: string
@@ -16,6 +16,8 @@ export default function DatePickerButton({
   // Takes the date and time back to what they were before they were changed by hand.
   onReset?: () => void
   canReset?: boolean
+  // The label of the date field, like "New until date".
+  dateLabel?: string
 }) {
   const [open, setOpen] = useState(false)
   // The value being edited, as a UTC date-time. Not valid while the date or the time is incomplete.
@@ -44,7 +46,7 @@ export default function DatePickerButton({
       <div style={{ padding: '1rem', width: '18rem', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <DateTimeInput
           description={<ScreenReaderContent>Date and time</ScreenReaderContent>}
-          dateRenderLabel={<Text weight="bold">New due date</Text>}
+          dateRenderLabel={<Text weight="bold">{dateLabel}</Text>}
           timeRenderLabel={<Text weight="bold">Time (UTC)</Text>}
           invalidDateTimeMessage="Enter a valid date and time"
           screenReaderLabels={{

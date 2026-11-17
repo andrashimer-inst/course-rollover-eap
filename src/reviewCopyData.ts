@@ -1,7 +1,7 @@
 import { DESIGN_RULES, DIMENSIONS } from './designCheckData'
 import type { DesignRule, Dimension } from './designCheckData'
 import { CONTENT_TYPES } from './courseContentData'
-import { RULE_LABEL, choiceOf } from './reviewData'
+import { RULE_LABEL, choiceOf, itemIdOf } from './reviewData'
 import type { Choice, ReviewRow } from './reviewData'
 import { DATE_ITEMS, NO_DATE_ITEMS, all, rowInfo, fmtShort } from './fixDatesData'
 import type { Included } from './fixDatesData'
@@ -66,7 +66,7 @@ export const TODO_GROUPS = [
 // When students see the course.
 // `date` is YYYY-MM-DD and `time` is HH:MM in the viewer's own time zone, the day and time the course publishes.
 export type Opening = { mode: 'open' | 'self'; hold: boolean; date: string; time: string }
-export const INITIAL_OPENING: Opening = { mode: 'open', hold: true, date: '2027-01-19', time: '08:00' }
+export const INITIAL_OPENING: Opening = { mode: 'self', hold: true, date: '2027-01-19', time: '08:00' }
 // The publish day and time as text, like "Tue, Jan 19 at 8:00 AM".
 export function openingLabel(o: Opening): string {
   const [y, m, d] = o.date.split('-').map(Number)
@@ -97,11 +97,12 @@ export function buildTodo(args: {
   // more than once when it has more than one finding.
   const moduleNames = CONTENT_TYPES.find((c) => c.id === 'modules')!.items.map((m) => m.label)
   for (const r of rows) {
-    if (choiceOf(r, choices) !== 'fix') continue
+    // An item with nothing found has nothing to fix, so it adds nothing to the list.
+    if (choiceOf(r, choices) !== 'fix' || r.findings.length === 0) continue
     const where = r.courseWide ? 'Whole course' : `${r.title} (${r.kindLabel})${moduleNames.includes(r.group) ? `, in ${r.group}` : ''}`
     // One entry for each finding of the item. The summary and the side panel list the item once, with its findings under it.
-    for (const f of r.findings.length ? r.findings : [undefined]) {
-      todo.push({ group: 'Fix after the copy', title: f ? f.detail : r.note?.text ?? 'Added to the to-do list.', detail: where, content: where, tag: f ? RULE_LABEL[f.rule.id] ?? f.rule.title : 'Team note', tone: f?.rule.severity === 'critical' ? 'error' : 'warning' })
+    for (const f of r.findings) {
+      todo.push({ group: 'Fix after the copy', title: f.detail, detail: where, content: where, tag: RULE_LABEL[f.rule.id] ?? f.rule.title, tone: f.rule.severity === 'critical' ? 'error' : 'warning' })
     }
   }
 
@@ -125,11 +126,22 @@ export function buildTodo(args: {
     }
   }
 
+  // What to check after the copy follows the choices made in the steps and the criteria of the account.
   if (opening.mode === 'self') {
     todo.push({ group: 'Check after the copy', tag: 'Publish', tone: 'neutral', title: 'Publish the course', detail: 'You chose to publish it manually. The course stays unpublished until you do.' })
+  } else {
+    todo.push({
+      group: 'Check after the copy', tag: 'Publish', tone: 'neutral', title: 'Check the course before it publishes',
+      detail: `It publishes by itself on ${openingLabel(opening)}${opening.hold ? ', unless a required check still fails that day' : ''}.`,
+    })
+  }
+  // Items left out are not in the new course. The criteria count what is there, so check that nothing students need is missing.
+  const leftOut = new Set(rows.filter((r) => !r.courseWide && !r.extra && r.typeId !== 'modules' && choiceOf(r, choices) === 'leave').map((r) => itemIdOf(r)))
+  if (leftOut.size > 0) {
+    todo.push({ group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: `${leftOut.size} ${leftOut.size === 1 ? 'item' : 'items'} left out of the copy`, detail: 'Check that nothing your criteria ask for is missing, like a quiz, a rubric or an outcome.' })
   }
   todo.push(
-    { group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Quiz settings, gradebook and publish state', detail: 'Copying does not publish anything. Check them before students arrive.' },
+    { group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Quiz settings, gradebook and publish state', detail: 'Copying does not publish anything. Your criteria ask for quizzes and a Canvas Gradebook in use, so check them before students arrive.' },
     { group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Enrollments and groups', detail: 'Canvas never copies people. Add them to the new course.' },
     { group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Feature options', detail: 'Turn them on again in Settings.' },
   )

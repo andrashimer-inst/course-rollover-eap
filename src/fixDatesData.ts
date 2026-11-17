@@ -11,7 +11,7 @@ const d = (y: number, m: number, day: number) => new Date(y, m - 1, day)
 // the college calendar. It is what makes two dates land on a closed day in each option (a weekend or spring break).
 // `itemId` is the learning object of the course the date belongs to, so a row only shows when that object is copied.
 // A group discussion can have a different date for each group, so every group has a row of its own.
-export type DateItem = { id: string; itemId: string; title: string; kind: string; module: string; old: Date; skew?: number; time?: string; from?: Date }
+export type DateItem = { id: string; itemId: string; title: string; kind: string; module: string; old: Date; skew?: number; time?: string; from?: Date; until?: Date; showOn?: Date; hideOn?: Date }
 
 const WELCOME = 'Welcome to the course'
 const WEEK1 = 'Week 1: Reading and responses'
@@ -23,25 +23,25 @@ const NONE = 'Not in a module'
 export const DATE_ITEMS: DateItem[] = [
   // A page can have a to-do date, so pages are listed with the rest.
   { id: 'p1', itemId: 'pages:1', title: 'Course welcome', kind: 'Page', module: WELCOME, old: d(2026, 9, 1) },
-  { id: 'a1', itemId: 'assignments:1', title: 'Assignment 1: Reading response', kind: 'Assignment', module: WEEK1, old: d(2026, 9, 9), from: d(2026, 8, 31) },
-  { id: 'q1', itemId: 'quizzes:1', title: 'Quiz 1', kind: 'Quiz', module: WEEK1, old: d(2026, 9, 16), from: d(2026, 9, 14) },
+  { id: 'a1', itemId: 'assignments:1', title: 'Assignment 1: Reading response', kind: 'Assignment', module: WEEK1, old: d(2026, 9, 9), from: d(2026, 8, 31), until: d(2026, 9, 21) },
+  { id: 'q1', itemId: 'quizzes:1', title: 'Quiz 1', kind: 'Quiz', module: WEEK1, old: d(2026, 9, 16), from: d(2026, 9, 14), showOn: d(2026, 9, 17), hideOn: d(2026, 9, 30) },
   { id: 'e3', itemId: 'events:3', title: 'Office hours', kind: 'Event', module: NONE, old: d(2026, 9, 21), time: '15:00' },
   // A discussion can be assigned to several sections, each with its own due date and available-from date, so it has a row for each.
   { id: 'outline-1', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 23), from: d(2026, 9, 16) },
   { id: 'outline-2', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 25), from: d(2026, 9, 18) },
   { id: 'outline-3', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 28), from: d(2026, 9, 21) },
   { id: 'p2', itemId: 'pages:2', title: 'Week 5 overview', kind: 'Page', module: WEEK3, old: d(2026, 9, 30) },
-  { id: 'a2', itemId: 'assignments:2', title: 'Project proposal', kind: 'Assignment', module: WEEK2, old: d(2026, 10, 7), from: d(2026, 9, 30) },
-  { id: 'debate-a', itemId: 'discussions:2', title: 'Week 3 discussion', kind: 'Group discussion · Group A', module: WEEK2, old: d(2026, 10, 8), from: d(2026, 10, 1) },
-  { id: 'debate-b', itemId: 'discussions:2', title: 'Week 3 discussion', kind: 'Group discussion · Group B', module: WEEK2, old: d(2026, 10, 9), skew: 1, from: d(2026, 10, 2) },
+  { id: 'a2', itemId: 'assignments:2', title: 'Project proposal', kind: 'Assignment', module: WEEK2, old: d(2026, 10, 7) },
+  { id: 'debate-a', itemId: 'discussions:2', title: 'Week 3 discussion', kind: 'Group discussion · Group A', module: WEEK2, old: d(2026, 10, 8) },
+  { id: 'debate-b', itemId: 'discussions:2', title: 'Week 3 discussion', kind: 'Group discussion · Group B', module: WEEK2, old: d(2026, 10, 9), skew: 1 },
   { id: 'a3', itemId: 'assignments:3', title: 'Assignment 3: Reflection', kind: 'Assignment', module: WEEK3, old: d(2026, 10, 14), skew: 2 },
   { id: 'e1', itemId: 'events:1', title: 'Guest speaker', kind: 'Event', module: NONE, old: d(2026, 10, 15), time: '14:00' },
-  { id: 'q2', itemId: 'quizzes:2', title: 'Quiz 2', kind: 'Quiz', module: WEEK3, old: d(2026, 10, 21), from: d(2026, 9, 21) },
-  { id: 'a4', itemId: 'assignments:4', title: 'Peer review', kind: 'Assignment', module: NONE, old: d(2026, 10, 30), time: '15:00', from: d(2026, 10, 26) },
-  { id: 'q3', itemId: 'quizzes:3', title: 'Quiz 3', kind: 'Quiz', module: NONE, old: d(2026, 11, 11) },
+  { id: 'q2', itemId: 'quizzes:2', title: 'Quiz 2', kind: 'Quiz', module: WEEK3, old: d(2026, 10, 21), showOn: d(2026, 10, 22), hideOn: d(2026, 11, 5) },
+  { id: 'a4', itemId: 'assignments:4', title: 'Peer review', kind: 'Assignment', module: NONE, old: d(2026, 10, 30), time: '15:00' },
+  { id: 'q3', itemId: 'quizzes:3', title: 'Quiz 3', kind: 'Quiz', module: NONE, old: d(2026, 11, 11), showOn: d(2026, 11, 12), hideOn: d(2026, 11, 26) },
   { id: 'e2', itemId: 'events:2', title: 'Portfolio review day', kind: 'Event', module: NONE, old: d(2026, 11, 18), time: '10:00' },
   { id: 'e4', itemId: 'events:4', title: 'Final presentations', kind: 'Event', module: NONE, old: d(2026, 12, 3), time: '16:30' },
-  { id: 'a5', itemId: 'assignments:5', title: 'Final portfolio', kind: 'Assignment', module: NONE, old: d(2026, 12, 4), from: d(2026, 11, 30) },
+  { id: 'a5', itemId: 'assignments:5', title: 'Final portfolio', kind: 'Assignment', module: NONE, old: d(2026, 12, 4) },
 ]
 
 // Items that have no due date in the old course. They stay empty, or the teacher sets them to the last day of the course.
@@ -148,6 +148,48 @@ export type FixDatesState = {
 }
 export const INITIAL_DATES: FixDatesState = { mode: 'calendar', startText: '2027-01-25', fixAll: '', rows: {}, noDate: {} }
 
+// An available-from or an until date of an item. Each is placed in the new term like the due date, is checked for a closed
+// day on its own, and can be fixed or changed by hand on its own. Its choice is kept under the key `<row id>:<from|until>`.
+export type SubKey = 'from' | 'until' | 'showOn' | 'hideOn'
+export type SubInfo = {
+  key: SubKey
+  label: string
+  // The key of its choice in `state.rows` and of its time in `state.times`.
+  id: string
+  old: Date
+  base: Date
+  closed: string | null
+  before: Date
+  after: Date
+  choice: RowChoice | undefined
+  final: Date | null
+  finalClosed: string | null
+  needsDecision: boolean
+  customProblem: string | null
+}
+// A quiz can also show its results to students from a day on and hide them again on another day.
+export const SUB_LABEL: Record<SubKey, string> = { from: 'Available from', until: 'Until', showOn: 'Show on', hideOn: 'Hide on' }
+// An item becomes available at the start of the day and stays available until the end of it, in UTC.
+export const SUB_TIME: Record<SubKey, string> = { from: '00:00', until: '23:59', showOn: '00:00', hideOn: '23:59' }
+
+function subInfo(item: DateItem, key: SubKey, state: FixDatesState): SubInfo | null {
+  const old = item[key]
+  if (!old) return null
+  const start = startFor(state.mode, state.startText)
+  const base = placed(old, start)
+  const closed = closedName(base)
+  const before = nextTeaching(base, -1)
+  const after = nextTeaching(base, 1)
+  const id = `${item.id}:${key}`
+  const choice = state.rows[id]
+  const customDate = choice?.choice === 'custom' ? parseStart(choice.custom) : null
+  const customProblem =
+    choice?.choice === 'custom' ? (customDate === null ? 'Enter a date' : closedName(customDate) ? `${closedName(customDate)} is a non-teaching day`.replace(/^a /, 'A ') : null) : null
+  const picked = choice?.choice ?? 'keep'
+  const final = state.mode === 'clear' ? null : picked === 'before' ? before : picked === 'after' ? after : picked === 'custom' ? (customDate ?? base) : base
+  return { key, label: SUB_LABEL[key], id, old, base, closed, before, after, choice, final, finalClosed: final ? closedName(final) : closed, needsDecision: state.mode !== 'clear' && closed !== null, customProblem }
+}
+
 export type DateRowInfo = {
   item: DateItem
   base: Date
@@ -166,6 +208,8 @@ export type DateRowInfo = {
   // The date the item becomes available, for the items that have one. It only moves with the placement of the term, and it
   // does not matter if it lands on a weekend or a holiday. Null when the dates are cleared.
   from: Date | null
+  // The available-from and until dates of the item, each with its own check.
+  subs: SubInfo[]
 }
 
 export function rowInfo(item: DateItem, state: FixDatesState): DateRowInfo {
@@ -199,7 +243,7 @@ export function rowInfo(item: DateItem, state: FixDatesState): DateRowInfo {
   const needsDecision = state.mode !== 'clear' && closed !== null
   // The available-from date keeps its week and weekday like the due date. It is only shown, so it is not checked or fixed.
   const from = state.mode === 'clear' || !item.from ? null : placed(item.from, start)
-  return { item, base, closed, final, before, after, choice, finalClosed: final ? closedName(final) : closed, needsDecision, done: state.mode === 'clear' || !needsDecision || choice !== undefined, customProblem, from }
+  return { item, base, closed, final, before, after, choice, finalClosed: final ? closedName(final) : closed, needsDecision, done: state.mode === 'clear' || !needsDecision || choice !== undefined, customProblem, from, subs: (['from', 'until', 'showOn', 'hideOn'] as SubKey[]).map((k) => subInfo(item, k, state)).filter((x): x is SubInfo => x !== null) }
 }
 
 // For the summary: how many dates moved to the new term as placed, and how many the teacher changed.

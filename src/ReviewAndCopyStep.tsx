@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, IconAssignmentLine, IconAnalyticsLine, IconEyeLine, IconInfoLine, Text } from '@instructure/ui/v11_7'
+import { Button, IconAssignmentLine, IconAnalyticsLine, IconInfoLine, Tabs, Text } from '@instructure/ui/v11_7'
 import StatusPill from './StatusPill'
 import ReadinessLoading from './ReadinessLoading'
-import ReadinessResults from './ReadinessResults'
-import CoursePreviewModal from './CoursePreviewModal'
+import { CoursePreview, ItemPreviewModal, ObjectsPreview } from './ContentStep'
+import type { PreviewItem } from './ContentStep'
 import CriteriaModal from './CriteriaModal'
-import { dateNoteFor } from './dateNote'
+import { dateMetaFor, dateNoteFor } from './dateNote'
 import { CONTENT_TYPES } from './courseContentData'
+import { withPulledIn } from './contentHelpers'
 import type { CopyMode, Picked, Scope } from './contentHelpers'
-import { dimensionsOf, openingLabel, readiness } from './reviewCopyData'
+import { dimensionsOf, readiness } from './reviewCopyData'
 import type { Opening } from './reviewCopyData'
 import { choiceLabel, choiceOf, hiddenModules } from './reviewData'
 import type { Choice, DupeChoice, ReviewRow } from './reviewData'
-import { DATE_ITEMS, rowInfo } from './fixDatesData'
 import type { FixDatesState, Included } from './fixDatesData'
 import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 
@@ -49,7 +49,8 @@ export default function ReviewAndCopyStep({
     : undefined
 
   // The course preview window.
-  const [previewOpen, setPreviewOpen] = useState(false)
+  const [viewTab, setViewTab] = useState(0)
+  const [openItem, setOpenItem] = useState<PreviewItem | null>(null)
   const [criteriaOpen, setCriteriaOpen] = useState(false)
   const ready = useMemo(() => readiness(rows, choices), [rows, choices])
   const groups = useMemo(() => dimensionsOf(ready), [ready])
@@ -68,30 +69,8 @@ export default function ReviewAndCopyStep({
   }, [])
 
 
-  // What the choices of steps 2 and 3 changed, for the notes and the preview.
-  const leftOut = rows.filter((r) => !r.extra && !r.courseWide && choiceOf(r, choices) === 'leave')
-  const fixLater = rows.filter((r) => choiceOf(r, choices) === 'fix')
   const moduleIds = scope === 'whole' ? MODULES.map((m) => m.id) : MODULES.filter((m) => picked[m.id]).map((m) => m.id)
   const merging = scope === 'part' && mode === 'merge'
-  const movedDates = DATE_ITEMS.filter((item) => included(item.itemId)).filter((item) => {
-    const info = rowInfo(item, dates)
-    return info.final && info.final.toDateString() !== info.base.toDateString()
-  }).length
-
-  // A summary of the choices made, one line for each area.
-  const changes: string[] = [
-    scope === 'whole'
-      ? `Scope: the whole course (${MODULES.length} modules and all learning objects). It replaces the content copied here before. Content you added yourself stays.`
-      : `Scope: ${moduleIds.length} of ${MODULES.length} modules. ${merging ? 'They are added to the content in the course now.' : 'They replace the content copied here before. Content you added yourself stays.'}`,
-    leftOut.length ? `Left out: ${leftOut.length} ${leftOut.length === 1 ? 'item' : 'items'} (${leftOut.map((r) => r.title).join(', ')}).` : 'Left out: nothing.',
-    fixLater.length ? `On your to-do list: ${fixLater.length} ${fixLater.length === 1 ? 'item' : 'items'}.` : 'On your to-do list: nothing from the review.',
-    dates.mode === 'clear'
-      ? 'Dates: cleared. Set them after the copy.'
-      : `Dates: moved to the new term${movedDates ? `, ${movedDates} changed by you` : ''}.`,
-    opening.mode === 'open'
-      ? `Publishing: ${openingLabel(opening)}${opening.hold ? ', unless a required check still fails that day' : ''}.`
-      : 'Publishing: manual. The course stays unpublished until you publish it.',
-  ]
 
   // Each item of the preview shows what was chosen for it in the review, and how its date checks out.
   const dateNote = dateNoteFor(dates, included)
@@ -113,58 +92,42 @@ export default function ReviewAndCopyStep({
   }
 
 
+  const hidden = hiddenModules(dupes)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xxl }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
-            <div style={cardStyle}>
-              {/* Card title and description, with the to-do list button at the end of the row. */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
-                  <Text as="div" weight="bold" size="large">Copy overview</Text>
-                  <Text as="div" color="secondary">A summary of the choices you made in this copy.</Text>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md }}>
-                  <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
-                  <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
-                </div>
-              </div>
-              <ul style={{ margin: `${t.space.lg} 0 0`, paddingInlineStart: '1.25rem' }}>
-                {changes.map((c) => (
-                  <li key={c}><Text>{c}</Text></li>
-                ))}
-              </ul>
-            </div>
-          <div style={cardStyle}>
-            {/* Card title and description, with the run button at the end of the row. */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
-                <Text as="div" weight="bold" size="large">Course readiness check</Text>
-                <Text as="div" color="secondary">The check goes through the readiness criteria of your account and your choices in the review.</Text>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.sm }}>
-                <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
-                <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
-                  {running ? 'Checking…' : 'Run check'}
-                </Button>
-              </div>
-            </div>
-            <div style={{ marginTop: t.space.lg }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
-                {running && (
-                  <ReadinessLoading areas={groups.map((g) => g.dimension)} onDone={() => { setRunning(false); setReadyRan(true) }} />
-                )}
-                {readyRan && !running && (
-                  <ReadinessResults groups={groups.map((g) => ({ dimension: g.dimension, rules: g.rules.map((x) => ({ title: x.rule.title, status: x.status, note: x.note })) }))} />
-                )}
-                {!running && !readyRan && (
-                  <Text color="secondary">Run the readiness check to see whether the course is ready for students, based on the choices you made. The check is optional.</Text>
-                )}
-              </div>
-            </div>
+      <div style={cardStyle}>
+        {/* Card title and description, with the criteria, the check and the to-do list at the end of the row. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
+            <Text as="div" weight="bold" size="large">Course preview</Text>
+            <Text as="div" color="secondary">The course as it will look after the copy, with your choices, the dates and the readiness check.</Text>
           </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.md }}>
+            <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
+            <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
+              {running ? 'Checking…' : 'Run check'}
+            </Button>
+            <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
+            <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
           </div>
-      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} />
-      <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={noteFor} />
+        </div>
+        <div style={{ marginTop: t.space.lg }}>
+          {running ? (
+            <ReadinessLoading areas={groups.map((g) => g.dimension)} onDone={() => { setRunning(false); setReadyRan(true) }} />
+          ) : (
+            <Tabs onRequestTabChange={(_e, { index }) => setViewTab(index)}>
+              <Tabs.Panel id="final-modules" renderTitle="Modules" variant="secondary" isSelected={viewTab === 0} padding="general.spaceMd 0 0 0">
+                <CoursePreview bare moduleIds={moduleIds} keepCurrent={merging} highlightNew hidden={hidden} noteFor={noteFor} metaFor={dateMetaFor(dates, included)} onOpenItem={setOpenItem} />
+              </Tabs.Panel>
+              <Tabs.Panel id="final-objects" renderTitle="Learning objects" variant="secondary" isSelected={viewTab === 1} padding="general.spaceMd 0 0 0">
+                <ObjectsPreview bare scope={scope} picked={withPulledIn(picked)} keepCurrent={merging} noteFor={noteFor} onOpenItem={setOpenItem} />
+              </Tabs.Panel>
+            </Tabs>
+          )}
+        </div>
+      </div>
+      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
+      <ItemPreviewModal item={openItem} onClose={() => setOpenItem(null)} />
     </div>
   )
 }

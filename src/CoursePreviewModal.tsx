@@ -22,12 +22,14 @@ export type PreviewSource = {
 }
 
 export default function CoursePreviewModal({
-  open, onClose, source, noteFor,
+  open, onClose, source, noteFor, metaFor,
 }: {
   open: boolean
   onClose: () => void
   source: PreviewSource
   noteFor: (itemId: string) => ReactNode
+  // The dates under each item, when the dates are known (steps 4 and 5).
+  metaFor?: (itemId: string, meta: string) => ReactNode
 }) {
   const t = useSurfaceTokens()
   const [tab, setTab] = useState(0)
@@ -58,7 +60,7 @@ export default function CoursePreviewModal({
           <Text as="div" color="secondary">{PREVIEW_NOTE}</Text>
           <Tabs onRequestTabChange={(_e, { index }) => setTab(index)}>
             <Tabs.Panel id="preview-modules" renderTitle="Modules" isSelected={tab === 0} padding="general.spaceMd 0 0 0">
-              <CoursePreview bare moduleIds={source.moduleIds} keepCurrent={source.keepCurrent} highlightNew hidden={source.hidden} noteFor={noteFor} onOpenItem={setItem} />
+              <CoursePreview bare moduleIds={source.moduleIds} keepCurrent={source.keepCurrent} highlightNew hidden={source.hidden} noteFor={noteFor} metaFor={metaFor} onOpenItem={setItem} />
             </Tabs.Panel>
             <Tabs.Panel id="preview-objects" renderTitle="Learning objects" isSelected={tab === 1} padding="general.spaceMd 0 0 0">
               <ObjectsPreview bare scope={source.scope} picked={withPulledIn(source.picked)} keepCurrent={source.keepCurrent} noteFor={noteFor} onOpenItem={setItem} />

@@ -53,9 +53,9 @@ function summaryOf(course: string, when: string, created: number, published: boo
 
 export const PREVIOUS_IMPORTS: ImportRow[] = [
   // The newest earlier copy: the course has not opened to students yet, so it can still be undone.
-  { id: 'i1', type: 'Course Copy', source: 'Design Portfolio', date: 'Sep 30 at 4:58am', status: 'Completed', published: false, summary: summaryOf('Design Portfolio', 'Sep 30 at 4:58am', 33, false, { 'assignments:4': 'leave', 'pages:1': 'fix', 'pages:1#2': 'fix', syllabus: 'fix', 'syllabus#2': 'fix', 'files:7': 'fix' }) },
+  { id: 'i1', type: 'Course Copy', source: 'Design Portfolio', date: 'Sep 30 at 4:58am', status: 'Completed', published: false, summary: summaryOf('Design Portfolio', 'Sep 30 at 4:58am', 33, false, { 'assignments:4': 'leave', 'assignments:1': 'fix', 'pages:1': 'fix', 'pages:1#2': 'fix', 'discussions:2': 'fix', 'discussions:2#2': 'fix', syllabus: 'fix', 'syllabus#2': 'fix', 'files:7': 'fix', 'course:links': 'fix' }) },
   { id: 'i2', type: 'Canvas Course Export Package', source: 'biology-101-export.imscc', date: 'Sep 12 at 9:14am', status: 'Completed', published: true },
-  { id: 'i3', type: 'Course Copy', source: 'Intro to Design', date: 'Aug 14 at 2:31pm', status: 'Completed', published: true, summary: summaryOf('Intro to Design', 'Aug 14 at 2:31pm', 28, true, { 'quizzes:3': 'leave', 'files:5': 'leave', 'announcements:2': 'leave', 'files:7': 'fix', 'pages:4': 'fix', 'pages:4#2': 'fix' }) },
+  { id: 'i3', type: 'Course Copy', source: 'Intro to Design', date: 'Aug 14 at 2:31pm', status: 'Completed', published: true, summary: summaryOf('Intro to Design', 'Aug 14 at 2:31pm', 28, true, { 'quizzes:3': 'leave', 'files:5': 'leave', 'announcements:2': 'leave', 'files:7': 'fix', 'pages:4': 'fix', 'pages:4#2': 'fix', 'assignments:3': 'fix', 'announcements:1': 'fix' }) },
   { id: 'i4', type: 'Zip file', source: 'week-3-materials.zip', date: 'Aug 2 at 11:06am', status: 'Completed', published: true },
   { id: 'i5', type: 'QTI .zip file', source: 'quiz-bank-2025.zip', date: 'Jul 21 at 10:40am', status: 'Failed', published: false },
 ]

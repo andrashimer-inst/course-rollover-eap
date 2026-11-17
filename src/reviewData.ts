@@ -15,7 +15,7 @@ export type Choice = 'bring' | 'fix' | 'leave'
 
 export const CHOICE_LABEL: Record<Choice, string> = {
   bring: 'Include in copy',
-  fix: 'Add to my to-do list',
+  fix: 'Include in copy and add to my to-do list',
   leave: 'Leave out of copy',
 }
 // The order of the dropdowns and of the bulk actions.
@@ -66,33 +66,31 @@ const KIND_LABEL: Record<TypeId, string> = {
 // Where the check found something, by item id. The detail is why this item was flagged.
 const HITS: Record<string, { rule: string; detail: string }[]> = {
   'modules:3': [{ rule: 'unused', detail: 'No student opened this module last term.' }],
-  'assignments:5': [{ rule: 'assignments', detail: 'This assignment is still a draft, so students cannot see it.' }],
-  'assignments:4': [
-    { rule: 'assignments', detail: 'This assignment is still a draft, so students cannot see it.' },
-    { rule: 'unused', detail: 'Only 2 students submitted it last term.' },
-  ],
-  'assignments:2': [
-    { rule: 'a11y-medium', detail: 'The description uses light grey text on a white background.' },
-    { rule: 'assignments', detail: 'This assignment is still a draft, so students cannot see it.' },
-  ],
-  'quizzes:2': [{ rule: 'classic-quizzes', detail: 'This quiz is unpublished.' }],
+  'assignments:1': [{ rule: 'links', detail: '1 link in the instructions points to the previous course and shows an error.' }],
+  'assignments:3': [{ rule: 'missing-links', detail: 'The Turnitin link cannot be copied. Link it again after the copy.' }],
+  'assignments:4': [{ rule: 'unused', detail: 'Only 2 students submitted it last term.' }],
+  'assignments:2': [{ rule: 'a11y-medium', detail: 'The description uses light grey text on a white background.' }],
   'quizzes:3': [{ rule: 'unused', detail: 'This quiz was never published last term, so no student took it.' }],
   'discussions:2': [
-    { rule: 'discussions', detail: 'This discussion is unpublished.' },
+    { rule: 'missing-links', detail: 'The Lucid whiteboard link cannot be copied. Link it again after the copy.' },
     { rule: 'a11y-medium', detail: 'The prompt uses light grey text that is hard to read.' },
   ],
   'discussions:3': [{ rule: 'unused', detail: 'No student posted in this discussion last term.' }],
   'pages:1': [
-    { rule: 'pages', detail: 'This page is a draft, so students cannot open it.' },
+    { rule: 'missing-links', detail: 'The Panopto video link cannot be copied. Link it again after the copy.' },
     { rule: 'a11y-high', detail: '3 images on this page have no alt text.' },
   ],
-  'pages:2': [{ rule: 'a11y-high', detail: '2 images on this page have no alt text.' }],
-  'pages:4': [{ rule: 'a11y-high', detail: '4 images on this page have no alt text.' }],
-  'announcements:1': [{ rule: 'announcements', detail: 'This announcement is a draft, so students will not see it.' }],
-  'announcements:2': [
-    { rule: 'unused', detail: 'This announcement is about a guest talk from last term, and no student opened it.' },
-    { rule: 'announcements', detail: 'This announcement is a draft, so students will not see it.' },
+  'pages:2': [
+    { rule: 'links', detail: '1 link points to the previous course and shows an error.' },
+    { rule: 'a11y-high', detail: '2 images on this page have no alt text.' },
   ],
+  'pages:3': [{ rule: 'links', detail: '2 links point to the previous course and show an error.' }],
+  'pages:4': [
+    { rule: 'links', detail: '1 link points to the previous course and shows an error.' },
+    { rule: 'a11y-high', detail: '4 images on this page have no alt text.' },
+  ],
+  'announcements:1': [{ rule: 'links', detail: '1 link points to the previous course and shows an error.' }],
+  'announcements:2': [{ rule: 'unused', detail: 'This announcement is about a guest talk from last term, and no student opened it.' }],
   'announcements:3': [{ rule: 'unused', detail: 'It reminds students of a quiz date from last term, and no student opened it.' }],
   'announcements:4': [{ rule: 'unused', detail: 'The new office hours are already on the welcome page, and no student opened this notice.' }],
   'files:3': [{ rule: 'unused', detail: 'No student opened this file last term.' }],
@@ -102,10 +100,9 @@ const HITS: Record<string, { rule: string; detail: string }[]> = {
   ],
   'files:6': [{ rule: 'a11y-high', detail: '6 images in these slides have no alt text.' }],
   'files:7': [{ rule: 'a11y-critical', detail: 'This 4 minute video has no captions or transcript.' }],
-  'rubrics:2': [{ rule: 'rubrics', detail: 'This rubric is not attached to any assignment.' }],
   'events:2': [{ rule: 'unused', detail: 'The date is from last term and no student opened the event.' }],
   syllabus: [
-    { rule: 'syllabus', detail: 'The syllabus has 38 words. Your account asks for at least 150.' },
+    { rule: 'syllabus', detail: 'The syllabus has no text. Your account asks for at least 1 word.' },
     { rule: 'a11y-medium', detail: 'Two sections use light grey text that is hard to read.' },
   ],
 }
@@ -162,9 +159,9 @@ export function buildRows(scope: Scope, picked: Picked, comments: EducatorCommen
 
 // Issues that affect the whole course. Each one is a row with a choice, like a learning object.
 const COURSE_ROWS: { id: string; title: string; rule: string; detail: string }[] = [
-  { id: 'course:menu', title: 'Course menu', rule: 'navigation', detail: 'The course menu shows 19 items. Students use about nine of them.' },
-  { id: 'course:links', title: 'Broken links', rule: 'links', detail: '6 links between items point to the previous course and show an error: Assignment 1, the reading list page, the submission guide page (2 links), the case study page and the welcome announcement.' },
-  { id: 'course:missing-links', title: 'Missing links', rule: 'missing-links', detail: '3 links open external tools (Panopto video, Lucid whiteboard and Turnitin) that Canvas cannot connect during the copy. They need to be linked again after the copy.' },
+  { id: 'course:menu', title: 'Course menu', rule: 'navigation', detail: 'The course menu shows Search, which your account asks to hide. Settings and Syllabus are visible.' },
+  { id: 'course:links', title: 'Broken links', rule: 'links', detail: '6 links between items point to the previous course and show an error: Assignment 1, Week 5 overview, How to submit your work (2 links), Portfolio guide and the Welcome announcement.' },
+  { id: 'course:missing-links', title: 'Missing links', rule: 'missing-links', detail: '3 links open external tools (Panopto video in Course welcome, Lucid whiteboard in Week 3 discussion and Turnitin in Assignment 3) that Canvas cannot connect during the copy. They need to be linked again after the copy.' },
   { id: 'course:alt', title: 'Images without alt text', rule: 'a11y-high', detail: '14 images on 6 pages have no alt text.' },
   { id: 'course:contrast', title: 'Text that is hard to read', rule: 'a11y-medium', detail: '8 pages use text colors that are hard to read on the page background.' },
   { id: 'course:scan', title: 'Accessibility scan', rule: 'a11y-scan', detail: 'This course was never scanned with the Course Content Accessibility Checker.' },
@@ -178,6 +175,8 @@ function courseRow(c: (typeof COURSE_ROWS)[number]): ReviewRow {
     typeId: 'course',
     group: 'Whole course',
     courseWide: true,
+    // Whole-course issues cannot be left out of the copy, so there is no leave-out choice.
+    options: ['fix', 'bring'],
     findings: [{ rule: rule(c.rule), detail: c.detail }],
     hasSuggestion: true,
   }
@@ -239,11 +238,11 @@ export const RULE_LABEL: Record<string, string> = {
   discussions: 'Not published',
   pages: 'Not published',
   modules: 'Not published',
-  syllabus: 'Syllabus too short',
+  syllabus: 'Syllabus empty',
   unused: 'Unused last term',
   links: 'Broken link',
   'missing-links': 'Needs relinking',
-  navigation: 'Crowded menu',
+  navigation: 'Menu setup',
   rubrics: 'Rubric not attached',
   'a11y-scan': 'Not scanned',
   'a11y-critical': 'Missing captions',

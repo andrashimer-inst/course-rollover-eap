@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconCheckMarkSolid, Spinner, Text } from '@instructure/ui/v11_7'
 import { useSurfaceTokens } from './appTheme'
+import { CRITERIA_NAME } from './CriteriaModal'
 
 // The course readiness check at work: it goes through one design area at a time, with a spinner on the area it is
 // on and a check on the ones that are done. When the last area is done, `onDone` runs. Step 3 and step 5 both use it,
 // and so does the wait between step 2 and step 3.
 
-const STEP_MS = 450
+const STEP_MS = 900
 
 export default function ReadinessLoading({ areas, onDone }: { areas: string[]; onDone: () => void }) {
   const t = useSurfaceTokens()
@@ -18,7 +19,7 @@ export default function ReadinessLoading({ areas, onDone }: { areas: string[]; o
 
   useEffect(() => {
     if (doneAreas >= areas.length) {
-      const end = setTimeout(() => finish.current(), 300)
+      const end = setTimeout(() => finish.current(), 600)
       return () => clearTimeout(end)
     }
     const next = setTimeout(() => setDoneAreas((n) => n + 1), STEP_MS)
@@ -27,6 +28,9 @@ export default function ReadinessLoading({ areas, onDone }: { areas: string[]; o
 
   return (
     <div role="status">
+      <Text as="div" color="secondary" size="small">Criteria</Text>
+      <Text as="div" weight="bold">{CRITERIA_NAME}</Text>
+      <div style={{ height: t.space.sm }} />
       <Text as="div" color="secondary">This can take some time. Keep this page open.</Text>
       <ul style={{ listStyle: 'none', margin: `${t.space.md} 0 0`, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(13rem, 1fr))', gap: t.space.md }}>
         {areas.map((area, i) => (
