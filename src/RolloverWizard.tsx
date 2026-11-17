@@ -430,7 +430,9 @@ export default function RolloverWizard({
   // What the window says is fixed when it opens, so the text does not change while it closes.
   const [bringInfo, setBringInfo] = useState({ count: 0, none: false });
   const undecided = useMemo(() => rows.filter((r) => choiceOf(r, choices) === undefined), [rows, choices]);
+  const toTopAfterClose = useRef(false);
   const bringAsIs = () => {
+    toTopAfterClose.current = true;
     const next = { ...choices };
     for (const r of undecided) next[r.id] = "bring";
     setChoices(next);
@@ -471,9 +473,13 @@ export default function RolloverWizard({
     setReached((r) => Math.max(r, i));
   };
   // Each step is a page view, so a new step starts at the top.
+  // A window that closes on the way (like "Include everything?") gives the old scroll position back after the step changed,
+  // so it scrolls up again a moment later. The loading screen between two steps starts at the top too.
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [step]);
+    const later = [100, 300, 600, 1000].map((ms) => window.setTimeout(() => window.scrollTo(0, 0), ms));
+    return () => later.forEach(window.clearTimeout);
+  }, [step, loadingContent]);
   const finishLoading = useCallback(() => {
     setLoadingContent(false);
     setStep((st) => st + 1);
@@ -684,7 +690,8 @@ export default function RolloverWizard({
           </div>
         </div>
       </div>
-      <Modal open={confirmBring} onDismiss={() => setConfirmBring(false)} size="small" label="Include everything" shouldCloseOnDocumentClick={false}>
+      {/* Closing the window gives the focus back to the button that opened it, which scrolls the page down to it. The next step starts at the top instead. */}
+      <Modal open={confirmBring} onDismiss={() => setConfirmBring(false)} size="small" label="Include everything" shouldCloseOnDocumentClick={false} shouldReturnFocus={false} onExited={() => { if (toTopAfterClose.current) window.scrollTo(0, 0); toTopAfterClose.current = false; }}>
         <Modal.Header>
           <CloseButton placement="end" offset="small" onClick={() => setConfirmBring(false)} screenReaderLabel="Close" />
           <Heading level="h2">Include everything?</Heading>

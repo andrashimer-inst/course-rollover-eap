@@ -69,11 +69,11 @@ const HITS: Record<string, { rule: string; detail: string }[]> = {
   'assignments:1': [{ rule: 'links', detail: '1 link in the instructions points to the previous course and shows an error.' }],
   'assignments:3': [{ rule: 'missing-links', detail: 'The Turnitin link cannot be copied. Link it again after the copy.' }],
   'assignments:4': [{ rule: 'unused', detail: 'Only 2 students submitted it last term.' }],
-  'assignments:2': [{ rule: 'a11y-medium', detail: 'The description uses light grey text on a white background.' }],
+  'assignments:2': [{ rule: 'a11y-medium', detail: 'Accessibility issue: the description uses light grey text on a white background, with too little color contrast.' }],
   'quizzes:3': [{ rule: 'unused', detail: 'This quiz was never published last term, so no student took it.' }],
   'discussions:2': [
     { rule: 'missing-links', detail: 'The Lucid whiteboard link cannot be copied. Link it again after the copy.' },
-    { rule: 'a11y-medium', detail: 'The prompt uses light grey text that is hard to read.' },
+    { rule: 'a11y-medium', detail: 'Accessibility issue: the prompt uses light grey text with too little color contrast.' },
   ],
   'discussions:3': [{ rule: 'unused', detail: 'No student posted in this discussion last term.' }],
   'pages:1': [
@@ -103,7 +103,7 @@ const HITS: Record<string, { rule: string; detail: string }[]> = {
   'events:2': [{ rule: 'unused', detail: 'The date is from last term and no student opened the event.' }],
   syllabus: [
     { rule: 'syllabus', detail: 'The syllabus has no text. Your account asks for at least 1 word.' },
-    { rule: 'a11y-medium', detail: 'Two sections use light grey text that is hard to read.' },
+    { rule: 'a11y-medium', detail: 'Accessibility issue: two sections use light grey text with too little color contrast.' },
   ],
 }
 
@@ -166,7 +166,7 @@ const COURSE_ROWS: { id: string; title: string; rule: string; detail: string }[]
   { id: 'course:links', title: 'Broken links', rule: 'links', detail: '6 links between items point to the previous course and show an error: Assignment 1, Week 5 overview, How to submit your work (2 links), Portfolio guide and the Welcome announcement.' },
   { id: 'course:missing-links', title: 'Missing links', rule: 'missing-links', detail: '3 links open external tools (Panopto video in Course welcome, Lucid whiteboard in Week 3 discussion and Turnitin in Assignment 3) that Canvas cannot connect during the copy. They need to be linked again after the copy.' },
   { id: 'course:alt', title: 'Images without alt text', rule: 'a11y-high', detail: '14 images on 6 pages have no alt text.' },
-  { id: 'course:contrast', title: 'Text that is hard to read', rule: 'a11y-medium', detail: '8 pages use text colors that are hard to read on the page background.' },
+  { id: 'course:contrast', title: 'Color contrast', rule: 'a11y-medium', detail: 'Accessibility issue: 8 pages use text colors with too little contrast against the page background.' },
   { id: 'course:scan', title: 'Accessibility scan', rule: 'a11y-scan', detail: 'This course was never scanned with the Course Content Accessibility Checker.' },
 ]
 
@@ -250,7 +250,7 @@ export const RULE_LABEL: Record<string, string> = {
   'a11y-scan': 'Not scanned',
   'a11y-critical': 'Missing captions',
   'a11y-high': 'Missing alt text',
-  'a11y-medium': 'Hard to read',
+  'a11y-medium': 'Color contrast',
 }
 
 // The same for what the teaching team wrote, by comment id.
