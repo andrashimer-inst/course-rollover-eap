@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, IconAssignmentLine, IconAnalyticsLine, IconInfoLine, Tabs, Text } from '@instructure/ui/v11_7'
+import { Button, IconAssignmentLine, IconInfoLine, Tabs, Text } from '@instructure/ui/v11_7'
 import StatusPill from './StatusPill'
 import ReadinessLoading from './ReadinessLoading'
 import { CoursePreview, ItemPreviewModal, ObjectsPreview } from './ContentStep'
@@ -24,7 +24,7 @@ import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 const MODULES = CONTENT_TYPES.find((c) => c.id === 'modules')!.items
 
 export default function ReviewAndCopyStep({
-  included, rows, choices, scope, mode, picked, dupes, dates, readyRan, setReadyRan, opening, todoCount, onToggleTodo,
+  included, rows, choices, scope, mode, picked, dupes, dates, readyRan, setReadyRan, todoCount, onToggleTodo,
 }: {
   rows: ReviewRow[]
   choices: Record<string, Choice>

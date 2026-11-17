@@ -44,8 +44,6 @@ const reasonOf = (closed: string) => {
 // The first day field and the fix-all dropdown are the same width, wide enough for the longest choice.
 const FIELD_WIDTH = '21rem'
 const PAGE_SIZE = 10
-// Items become available at the start of the day, in UTC, unless the educator sets another time.
-const FROM_TIME = '00:00'
 
 const dateFieldProps = {
   screenReaderLabels: {

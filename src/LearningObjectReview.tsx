@@ -13,7 +13,6 @@ import {
   Table,
   Tabs,
   IconAssignmentLine,
-  IconAnalyticsLine,
   IconInfoLine,
   IconEmailLine,
   IconEyeLine,
