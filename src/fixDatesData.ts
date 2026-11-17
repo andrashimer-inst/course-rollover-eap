@@ -67,7 +67,7 @@ export type NoDateChoice = string
 // The last day of the course: the last Friday of the old term, placed in the new term like the other dates.
 // The last day of the old course, Fall 2026.
 export const FALL_END = d(2026, 12, 11)
-export const lastDayOf = (state: { mode: DateMode; startText: string }) => placed(FALL_END, startFor(state.mode, state.startText))
+export const lastDayOf = (state: { mode: DateMode; startText: string }) => state.mode === 'keep' ? FALL_END : placed(FALL_END, startFor(state.mode, state.startText))
 
 // The time of day an item is due, in UTC. Most items are due at the end of the day.
 export const DEFAULT_TIME = '23:59'
@@ -91,7 +91,8 @@ const CLOSED = [
   { date: d(2027, 4, 2), name: 'Good Friday' },
 ]
 
-export type DateMode = 'calendar' | 'clear'
+// 'keep' leaves every date as it is in the old course and only lists them.
+export type DateMode = 'calendar' | 'keep' | 'clear'
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
 export const mondayOf = (date: Date) => addDays(date, -((date.getDay() + 6) % 7))
@@ -176,8 +177,9 @@ function subInfo(item: DateItem, key: SubKey, state: FixDatesState): SubInfo | n
   const old = item[key]
   if (!old) return null
   const start = startFor(state.mode, state.startText)
-  const base = placed(old, start)
-  const closed = closedName(base)
+  const keep = state.mode === 'keep'
+  const base = keep ? old : placed(old, start)
+  const closed = keep ? null : closedName(base)
   const before = nextTeaching(base, -1)
   const after = nextTeaching(base, 1)
   const id = `${item.id}:${key}`
@@ -187,7 +189,7 @@ function subInfo(item: DateItem, key: SubKey, state: FixDatesState): SubInfo | n
     choice?.choice === 'custom' ? (customDate === null ? 'Enter a date' : closedName(customDate) ? `${closedName(customDate)} is a non-teaching day`.replace(/^a /, 'A ') : null) : null
   const picked = choice?.choice ?? 'keep'
   const final = state.mode === 'clear' ? null : picked === 'before' ? before : picked === 'after' ? after : picked === 'custom' ? (customDate ?? base) : base
-  return { key, label: SUB_LABEL[key], id, old, base, closed, before, after, choice, final, finalClosed: final ? closedName(final) : closed, needsDecision: state.mode !== 'clear' && closed !== null, customProblem }
+  return { key, label: SUB_LABEL[key], id, old, base, closed, before, after, choice, final, finalClosed: keep ? null : final ? closedName(final) : closed, needsDecision: state.mode !== 'clear' && closed !== null, customProblem }
 }
 
 export type DateRowInfo = {
@@ -215,8 +217,9 @@ export type DateRowInfo = {
 export function rowInfo(item: DateItem, state: FixDatesState): DateRowInfo {
   const start = startFor(state.mode, state.startText)
   // Each item keeps its week and weekday, except the few that sit off their weekday (see `skew`).
-  const base = addDays(placed(item.old, start), item.skew ?? 0)
-  const closed = closedName(base)
+  const keep = state.mode === 'keep'
+  const base = keep ? item.old : addDays(placed(item.old, start), item.skew ?? 0)
+  const closed = keep ? null : closedName(base)
   const before = nextTeaching(base, -1)
   const after = nextTeaching(base, 1)
   const choice = state.rows[item.id]
@@ -242,13 +245,13 @@ export function rowInfo(item: DateItem, state: FixDatesState): DateRowInfo {
             : base
   const needsDecision = state.mode !== 'clear' && closed !== null
   // The available-from date keeps its week and weekday like the due date. It is only shown, so it is not checked or fixed.
-  const from = state.mode === 'clear' || !item.from ? null : placed(item.from, start)
-  return { item, base, closed, final, before, after, choice, finalClosed: final ? closedName(final) : closed, needsDecision, done: state.mode === 'clear' || !needsDecision || choice !== undefined, customProblem, from, subs: (['from', 'until', 'showOn', 'hideOn'] as SubKey[]).map((k) => subInfo(item, k, state)).filter((x): x is SubInfo => x !== null) }
+  const from = state.mode === 'clear' || !item.from ? null : keep ? item.from : placed(item.from, start)
+  return { item, base, closed, final, before, after, choice, finalClosed: keep ? null : final ? closedName(final) : closed, needsDecision, done: state.mode === 'clear' || !needsDecision || choice !== undefined, customProblem, from, subs: (['from', 'until', 'showOn', 'hideOn'] as SubKey[]).map((k) => subInfo(item, k, state)).filter((x): x is SubInfo => x !== null) }
 }
 
 // For the summary: how many dates moved to the new term as placed, and how many the teacher changed.
 export function dateCounts(state: FixDatesState, included: Included = all): { shifted: number; edited: number } {
-  if (state.mode === 'clear') return { shifted: 0, edited: 0 }
+  if (state.mode === 'clear' || state.mode === 'keep') return { shifted: 0, edited: 0 }
   const infos = DATE_ITEMS.filter((i) => included(i.itemId)).map((item) => rowInfo(item, state))
   const edited = infos.filter((r) => r.final && r.final.toDateString() !== r.base.toDateString()).length
   return { shifted: infos.length - edited, edited }

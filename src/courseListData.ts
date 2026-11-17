@@ -22,14 +22,14 @@ export const TIME_KINDS: TimeKind[] = ['Last used', 'Concluded', 'Last updated']
 
 const RAW_COURSES: Omit<SourceCourse, 'sisId' | 'readinessCheckedOn' | 'subAccount'>[] = [
   { name: 'Design Portfolio', code: 'DES 310', teachers: ['You'], students: 28, timeKind: 'Last used', date: 'Oct 6, 2025' },
-  { name: 'Biology 101', code: 'BIO 101', teachers: ['Maria Okafor'], students: 112, timeKind: 'Concluded', date: 'Dec 19, 2025' },
+  { name: 'Biology 101', code: 'BIO 101', teachers: ['You', 'Maria Okafor'], students: 112, timeKind: 'Concluded', date: 'Dec 19, 2025' },
   { name: 'Intro to Design', code: 'DES 110', teachers: ['You', 'Dana Reyes'], students: 36, timeKind: 'Last updated', date: 'Nov 2, 2025' },
   { name: 'World History', code: 'HIS 120', teachers: ['Tomas Lindgren'], students: 64, timeKind: 'Concluded', date: 'May 15, 2025' },
   { name: 'Statistics for Designers', code: 'STA 210', teachers: ['You'], students: 19, timeKind: 'Concluded', date: 'May 16, 2025' },
   { name: 'Typography Studio', code: 'DES 220', teachers: ['Dana Reyes', 'Sam Tran'], students: 24, timeKind: 'Last used', date: 'Sep 28, 2025' },
   { name: 'Research Methods', code: 'RES 301', teachers: ['Priya Nair'], students: 47, timeKind: 'Last updated', date: 'Aug 30, 2025' },
   { name: 'Creative Writing Workshop', code: 'ENG 240', teachers: ['You'], students: 15, timeKind: 'Last used', date: 'Oct 20, 2025' },
-  { name: 'Organic Chemistry I', code: 'CHE 201', teachers: ['Maria Okafor', 'Ben Hartley'], students: 138, timeKind: 'Concluded', date: 'Dec 12, 2024' },
+  { name: 'Organic Chemistry I', code: 'CHE 201', teachers: ['You', 'Ben Hartley'], students: 138, timeKind: 'Concluded', date: 'Dec 12, 2024' },
   { name: 'Introduction to Python', code: 'CS 101', teachers: ['You'], students: 92, timeKind: 'Last used', date: 'Oct 14, 2025' },
   { name: 'Art History Survey', code: 'ART 150', teachers: ['Priya Nair'], students: 53, timeKind: 'Last updated', date: 'Jul 8, 2025' },
   { name: 'Microeconomics', code: 'ECO 210', teachers: ['Tomas Lindgren'], students: 71, timeKind: 'Concluded', date: 'May 14, 2025' },
@@ -50,12 +50,17 @@ const RAW_COURSES: Omit<SourceCourse, 'sisId' | 'readinessCheckedOn' | 'subAccou
   { name: 'Intro to Psychology', code: 'PSY 101', teachers: ['Maria Okafor', 'Priya Nair'], students: 146, timeKind: 'Concluded', date: 'Dec 20, 2024' },
   { name: 'Music Theory', code: 'MUS 130', teachers: ['You'], students: 31, timeKind: 'Last used', date: 'Sep 30, 2025' },
   { name: 'Project Management', code: 'BUS 260', teachers: ['Tomas Lindgren'], students: 49, timeKind: 'Last updated', date: 'Jul 21, 2025' },
-  { name: 'Human Anatomy', code: 'BIO 210', teachers: ['Maria Okafor'], students: 95, timeKind: 'Concluded', date: 'May 15, 2025' },
+  { name: 'Human Anatomy', code: 'BIO 210', teachers: ['You'], students: 95, timeKind: 'Concluded', date: 'May 15, 2025' },
   { name: 'Film Studies', code: 'FIL 200', teachers: ['Sam Tran'], students: 34, timeKind: 'Last used', date: 'Oct 7, 2025' },
   { name: 'Academic Writing', code: 'ENG 101', teachers: ['You', 'Ben Hartley'], students: 110, timeKind: 'Last used', date: 'Oct 24, 2025' },
   { name: 'Sustainable Cities', code: 'ENV 320', teachers: ['Dana Reyes'], students: 41, timeKind: 'Last updated', date: 'Sep 9, 2025' },
   { name: 'Calculus II', code: 'MAT 160', teachers: ['Priya Nair'], students: 77, timeKind: 'Concluded', date: 'May 14, 2025' },
   { name: 'Ethics in Technology', code: 'PHI 240', teachers: ['You'], students: 45, timeKind: 'Last updated', date: 'Oct 4, 2025' },
+  { name: 'Cell Biology (Fall 2025)', code: 'BIO 220', teachers: ['You'], students: 86, timeKind: 'Concluded', date: 'Dec 12, 2025' },
+  { name: 'Cell Biology Lab', code: 'BIO 221', teachers: ['You', 'Maria Okafor'], students: 42, timeKind: 'Last used', date: 'Oct 21, 2025' },
+  { name: 'Molecular Genetics', code: 'BIO 305', teachers: ['You'], students: 58, timeKind: 'Last updated', date: 'Oct 8, 2025' },
+  { name: 'Microbiology', code: 'BIO 230', teachers: ['Maria Okafor'], students: 77, timeKind: 'Concluded', date: 'Dec 10, 2025' },
+  { name: 'Biochemistry', code: 'CHE 320', teachers: ['You', 'Ben Hartley'], students: 64, timeKind: 'Last used', date: 'Oct 15, 2025' },
   { name: 'Spanish for Beginners', code: 'SPA 101', teachers: ['Tomas Lindgren'], students: 62, timeKind: 'Concluded', date: 'Dec 16, 2024' },
 ]
 
@@ -73,6 +78,10 @@ const CHECKED: Record<string, string> = {
   'Design Systems': 'Oct 13, 2025',
   'Accessibility in Practice': 'Oct 23, 2025',
   'Biology 101': 'Dec 20, 2025',
+  'Cell Biology (Fall 2025)': 'Dec 13, 2025',
+  'Cell Biology Lab': 'Oct 22, 2025',
+  'Molecular Genetics': 'Oct 9, 2025',
+  'Biochemistry': 'Oct 16, 2025',
 }
 
 export const SUB_ACCOUNTS = [

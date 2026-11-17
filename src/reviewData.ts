@@ -109,6 +109,9 @@ const HITS: Record<string, { rule: string; detail: string }[]> = {
 
 const rule = (id: string) => DESIGN_RULES.find((r) => r.id === id)!
 
+// What the check found on one item, for the preview window of the item.
+export const findingsOf = (itemId?: string): Finding[] => (itemId ? (HITS[itemId] ?? []).map((h) => ({ rule: rule(h.rule), detail: h.detail })) : [])
+
 const sameItem = (comment: string, title: string) => comment === title || comment.endsWith(` ${title}`)
 
 // The rows that are copied, in the order of the course. Items in a module sit under that module.

@@ -104,9 +104,6 @@ export default function ReviewAndCopyStep({
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.md }}>
             <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
-            <Button color={readyRan ? 'secondary' : 'primary'} renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={run}>
-              {running ? 'Checking…' : 'Run check'}
-            </Button>
             <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
             <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
           </div>
@@ -126,7 +123,7 @@ export default function ReviewAndCopyStep({
           )}
         </div>
       </div>
-      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
+      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} onRunCheck={run} running={running} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
       <ItemPreviewModal item={openItem} onClose={() => setOpenItem(null)} />
     </div>
   )

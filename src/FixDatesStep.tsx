@@ -66,6 +66,11 @@ const MODES: { id: DateMode; title: string; body: string }[] = [
     body: 'Each item keeps its week of term and weekday. Spring break is skipped.',
   },
   {
+    id: 'keep',
+    title: 'Keep the dates as they are',
+    body: 'Items keep the dates of the old course. They are listed here and not checked.',
+  },
+  {
     id: 'clear',
     title: 'Clear dates and set them later',
     body: 'Items are copied without dates.',
@@ -134,7 +139,9 @@ export default function FixDatesStep({
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   const infos = DATE_ITEMS.filter((item) => included(item.itemId)).map((item) => rowInfo(item, state))
-  const clear = state.mode === 'clear'
+  const keep = state.mode === 'keep'
+  // Keeping and clearing both skip the date work: no fixing, no new dates, no items without a date.
+  const clear = state.mode === 'clear' || keep
   // The items with no due date come after the dated ones. The table shows 10 rows a page.
   const noDated = clear ? [] : NO_DATE_ITEMS.filter((item) => included(item.itemId))
   const [page, setPage] = useState(1)
@@ -150,7 +157,7 @@ export default function FixDatesStep({
   const dateCount = infos.length + subsOf.length
   // The check of one date on a row with several dates: one pill. What the day is sits in the tooltip.
   const compactCheck = (closed: string | null, finalClosed: string | null, byHand: boolean) => {
-    if (clear) return <StatusPill size="sm" color="info">Set it later</StatusPill>
+    if (clear) return keep ? null : <StatusPill size="sm" color="info">Set it later</StatusPill>
     const why = byHand && finalClosed && finalClosed !== closed ? `Your date is ${reasonOf(finalClosed)}.` : closed ? `${finalClosed ? 'Lands on' : 'Landed on'} ${reasonOf(closed)}.` : ''
     const pill = finalClosed ? <StatusPill size="sm" color="warning">Non-teaching day</StatusPill> : closed ? <StatusPill size="sm" color="success">Fixed</StatusPill> : <StatusPill size="sm" color="success">Teaching day</StatusPill>
     return why ? <Tooltip renderTip={why} placement="top"><span tabIndex={0} style={{ display: 'inline-block' }}>{pill}</span></Tooltip> : pill
@@ -281,18 +288,20 @@ export default function FixDatesStep({
           .dates-table table { table-layout: fixed; width: 100%; }
           .dates-table th:nth-child(1) { width: 30%; }
           .dates-table th:nth-child(2), .dates-table th:nth-child(3), .dates-table th:nth-child(4) { width: 23.3333%; }
+          .dates-keep th:nth-child(1) { width: 50%; }
+          .dates-keep th:nth-child(2) { width: 50%; }
           .dates-clear th:nth-child(1) { width: 40%; }
           .dates-clear th:nth-child(2) { width: 25%; }
           .dates-clear th:nth-child(3) { width: 35%; }
         `}</style>
-        <div className={clear ? 'dates-table dates-clear' : 'dates-table'} style={cardStyle}>
+        <div className={keep ? 'dates-table dates-keep' : clear ? 'dates-table dates-clear' : 'dates-table'} style={cardStyle}>
           {/* The summary and the fix-all choice are part of the card. */}
           {/* Card title and description, with the spacing of the other cards. */}
           <div style={{ marginBottom: t.space.lg, display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
             <Text as="div" weight="bold" size="large">Dates</Text>
             <Text as="div" color="secondary" aria-live="polite">
               {clear
-                ? `${dateCount} dates cleared · set them after the copy`
+                ? keep ? `${dateCount} dates · kept as they are` : `${dateCount} dates cleared · set them after the copy`
                 : `${dateCount} dates to review · ${closedCount === 0 ? 'all on teaching days' : `${closedCount} on a non-teaching day · ${open.length} still to fix`}`}
             </Text>
           </div>
@@ -302,8 +311,8 @@ export default function FixDatesStep({
             <Table.Head themeOverride={noFill}>
               <Table.Row themeOverride={noFill}>
                 <Table.ColHeader themeOverride={noFill} id="item">Item</Table.ColHeader>
-                <Table.ColHeader themeOverride={noFill} id="fall">Previous dates</Table.ColHeader>
-                <Table.ColHeader themeOverride={noFill} id="check">Check</Table.ColHeader>
+                <Table.ColHeader themeOverride={noFill} id="fall">{keep ? 'Dates' : 'Previous dates'}</Table.ColHeader>
+                {!keep && <Table.ColHeader themeOverride={noFill} id="check">Check</Table.ColHeader>}
                 {!clear && <Table.ColHeader themeOverride={noFill} id="choice">New dates</Table.ColHeader>}
               </Table.Row>
             </Table.Head>
@@ -321,6 +330,7 @@ export default function FixDatesStep({
                         <DateBlock key={sb.id} label={sb.label}><DateLine date={sb.old} time={SUB_TIME[sb.key]} /></DateBlock>
                       ))}
                     </Table.Cell>
+                    {!keep && (
                     <Table.Cell themeOverride={noFill}>
                       <DateBlock first label={r.item.kind === 'Event' ? 'Date' : 'Due'}>
                       {compactCheck(r.closed, r.finalClosed, r.choice?.choice === 'custom')}
@@ -329,6 +339,7 @@ export default function FixDatesStep({
                         <DateBlock key={sb.id} label={sb.label}>{compactCheck(sb.closed, sb.finalClosed, sb.choice?.choice === 'custom')}</DateBlock>
                       ))}
                     </Table.Cell>
+                    )}
                     {!clear && (
                       <Table.Cell themeOverride={noFill}>
                         <DateBlock first label={r.item.kind === 'Event' ? 'Date' : 'Due'}>
@@ -468,14 +479,14 @@ export default function FixDatesStep({
                               <Text color="secondary">No date</Text>
                             )}
                           </div>
-                          <Tooltip renderTip={date ? 'Dated. This item now has a due date.' : 'No date yet. Set one later, or pick a date.'} placement="top">
+                          <Tooltip renderTip={date ? (closedName(date) ? 'This date is on a non-teaching day.' : 'Dated. This item now has a due date.') : 'No date yet. Set one later, or pick a date.'} placement="top">
                             <span
                               tabIndex={0}
                               role="img"
-                              aria-label={date ? 'Dated' : 'No date yet'}
-                              style={{ display: 'inline-flex', paddingBlockStart: '0.25rem', color: date ? t.successTextColor : t.warningTextColor }}
+                              aria-label={date ? (closedName(date) ? 'On a non-teaching day' : 'Dated') : 'No date yet'}
+                              style={{ display: 'inline-flex', paddingBlockStart: '0.25rem', color: date && !closedName(date) ? t.successTextColor : t.warningTextColor }}
                             >
-                              {date ? <CircleCheckInstUIIcon /> : <CircleAlertInstUIIcon />}
+                              {date && !closedName(date) ? <CircleCheckInstUIIcon /> : <CircleAlertInstUIIcon />}
                             </span>
                           </Tooltip>
                           <DatePickerButton

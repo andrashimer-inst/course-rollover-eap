@@ -31,8 +31,8 @@ export default function SelectCourseStep({ selected, onSelect }: { selected: str
   // Light and Dark put the table on a card. Legacy stays flat on the page.
   const card = useAppThemeKey() !== 'legacy'
   const [query, setQuery] = useState('')
-  const [taught, setTaught] = useState(ANY)
-  const [subAccount, setSubAccount] = useState(SUB_ACCOUNTS[2])
+  const [taught, setTaught] = useState('You')
+  const [subAccount, setSubAccount] = useState(SUB_ACCOUNTS[3])
   const [time, setTime] = useState(ANY)
   const [sortBy, setSortBy] = useState<SortKey | null>(null)
   const [ascending, setAscending] = useState(true)

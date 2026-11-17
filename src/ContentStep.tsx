@@ -25,6 +25,8 @@ import { CONTENT_TYPES, CURRENT_MODULES, MODULE_ENTRIES, ORIGIN, PREVIEW_KINDS, 
 import { TYPE_ICON, countPicked, keys, pulledInBy, withPulledIn } from './contentHelpers'
 import type { CopyMode, Picked, Scope } from './contentHelpers'
 import type { ContentType, ModuleEntry } from './courseContentData'
+import { currentMeta } from './dateNote'
+import { RULE_LABEL, findingsOf } from './reviewData'
 import FigmaAlert from './FigmaAlert'
 import SegmentedControl from './SegmentedControl'
 import StatusPill from './StatusPill'
@@ -41,10 +43,11 @@ const SORTED_TYPES = [...CONTENT_TYPES].sort((a, b) => Number(a.items.length > 0
 // "Part of it" opens a list of learning objects to tick. Whenever modules are copied, a preview shows how the course looks.
 
 // An item of the preview, as the window that opens when it is clicked shows it.
-export type PreviewItem = { title: string; kind: string; meta?: string; where: string; origin: string }
+export type PreviewItem = { title: string; kind: string; meta?: string; where: string; origin: string; itemId?: string }
 
 // Only these can be opened from the preview, and they open view only, the way a student sees them.
-const PREVIEW_TYPES = new Set(['pages', 'assignments', 'quizzes', 'files'])
+// Quizzes and question banks have no preview.
+const PREVIEW_TYPES = new Set(['pages', 'assignments', 'files', 'rubrics', 'discussions', 'announcements', 'outcomes', 'events', 'settings', 'syllabus'])
 
 // The facts of an item from its line in the module, like "Oct 7 | 15 pts | Submit".
 const factsOf = (meta?: string) => {
@@ -55,12 +58,6 @@ const factsOf = (meta?: string) => {
     how: parts.find((p) => /Submit|Score/.test(p)),
   }
 }
-
-const QUESTIONS = [
-  { text: 'Which source is a primary source for this period?', options: ['A diary written at the time', 'A textbook published last year', 'A film made in 1990', 'A website summary'] },
-  { text: 'What is the main reason the event changed the region?', options: ['Trade routes moved', 'The climate changed', 'A new language spread', 'The borders did not change'] },
-  { text: 'Which claim does the evidence in the reading support best?', options: ['The first claim', 'The second claim', 'Neither claim', 'Both claims'] },
-]
 
 // The item as it looks in the course, read only. There is nothing to edit or submit. It is used in the window of step 2
 // and inside the course preview of step 3.
@@ -113,35 +110,6 @@ export function ItemPreviewBody({ item }: { item: PreviewItem }) {
         </div>
       )}
 
-      {item.kind === 'Quiz' && (
-        <div style={frame}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.xl }}>
-            {fact('Points', facts.points ?? '8 pts')}
-            {fact('Due', facts.due ? `${facts.due} at 11:59 PM` : undefined)}
-            {fact('Time limit', '30 minutes')}
-            {fact('Attempts', '1')}
-          </div>
-          <div>
-            <Text as="div" weight="bold">Instructions</Text>
-            <Text as="div">Please answer the following questions about the reading. You can leave and come back until you submit.</Text>
-          </div>
-          {QUESTIONS.map((q, n) => (
-            <div key={q.text} style={{ border: `${t.borderWidth} solid ${t.borderColor}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
-              <div style={{ padding: t.space.md, background: t.pageColor, display: 'flex', justifyContent: 'space-between' }}>
-                <Text weight="bold">Question {n + 1}</Text>
-                <Text color="secondary">2 pts</Text>
-              </div>
-              <div style={{ padding: t.space.md, display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
-                <Text as="div">{q.text}</Text>
-                {q.options.map((o) => (
-                  <RadioInput key={o} name={`q${n}`} value={o} label={o} disabled checked={false} onChange={() => {}} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {item.kind === 'File' && (
         <div style={frame}>
           <div style={{ display: 'flex', alignItems: 'center', gap: t.space.md }}>
@@ -168,10 +136,155 @@ export function ItemPreviewBody({ item }: { item: PreviewItem }) {
           )}
         </div>
       )}
+
+      {item.kind === 'Rubric' && (
+        <div style={frame}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.xl }}>
+            {fact('Points', '20 pts')}
+            {fact('Criteria', '3')}
+            {fact('Used by', 'Assignment 3: Reflection')}
+          </div>
+          {[
+            { name: 'Evidence', text: 'Uses specific moments from the course to support each point.', levels: ['Full marks 8 pts', 'Partial 5 pts', 'No marks 0 pts'] },
+            { name: 'Reflection', text: 'Explains what changed in your thinking and why.', levels: ['Full marks 8 pts', 'Partial 5 pts', 'No marks 0 pts'] },
+            { name: 'Clarity', text: 'Writing is clear, organized and the right length.', levels: ['Full marks 4 pts', 'Partial 2 pts', 'No marks 0 pts'] },
+          ].map((c) => (
+            <div key={c.name} style={{ border: `${t.borderWidth} solid ${t.borderColor}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
+              <div style={{ padding: t.space.md, background: t.pageColor }}>
+                <Text as="div" weight="bold">{c.name}</Text>
+                <Text as="div" size="small" color="secondary">{c.text}</Text>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                {c.levels.map((l) => (
+                  <div key={l} style={{ padding: t.space.md, borderInlineStart: `${t.borderWidth} solid ${t.borderColor}` }}>
+                    <Text size="small">{l}</Text>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {item.kind === 'Discussion' && (
+        <div style={frame}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.xl }}>
+            {fact('Type', item.title.includes('Week 3') ? 'Group discussion' : 'Discussion')}
+            {fact('Replies', 'Students reply once, then to a classmate')}
+          </div>
+          <Text as="div">Share a short post about what stood out to you in this week's reading, then reply to at least one classmate. Keep your posts to a few sentences.</Text>
+          <div style={{ border: `${t.borderWidth} solid ${t.borderColor}`, borderRadius: t.radiusMd, padding: t.space.md }}>
+            <Text as="div" weight="bold">Maria Okafor</Text>
+            <Text as="div" size="small" color="secondary">Posted Sep 2</Text>
+            <Text as="div">I found the second reading easier to follow than the first. Did anyone else?</Text>
+          </div>
+        </div>
+      )}
+
+      {item.kind === 'Announcement' && (
+        <div style={frame}>
+          <Text as="div" size="small" color="secondary">Posted by your instructor</Text>
+          <Text as="div">Welcome to the course. Please read the syllabus before our first session and bring your questions. Office hours are every Tuesday, online and in person.</Text>
+          <Text as="div">See you soon.</Text>
+        </div>
+      )}
+
+      {item.kind === 'Outcome' && (
+        <div style={frame}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.xl }}>
+            {fact('Mastery at', '3 pts')}
+            {fact('Scale', 'Exceeds, Meets, Near, Below')}
+          </div>
+          <Text as="div">Students can show this outcome in their work. It is scored on the rubric of the assignments that are aligned to it.</Text>
+          {[['Exceeds expectations', '4 pts'], ['Meets expectations', '3 pts'], ['Near expectations', '2 pts'], ['Below expectations', '1 pt']].map(([label, pts], n) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: t.space.md, borderTop: n ? `${t.borderWidth} solid ${t.borderColor}` : undefined }}>
+              <Text>{label}</Text>
+              <Text color="secondary">{pts}</Text>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {item.kind === 'Calendar event' && (
+        <div style={frame}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.xl }}>
+            {fact('Where', 'Room 214 and online')}
+            {fact('Repeats', 'Does not repeat')}
+          </div>
+          <Text as="div">A session for the whole class. The date is set in the dates step.</Text>
+        </div>
+      )}
+
+      {item.kind === 'Course Settings' && (
+        <div style={frame}>
+          {[
+            ['Course name', 'Creative Writing Workshop'],
+            ['Course code', 'ENG 240'],
+            ['Term', 'Fall 2026'],
+            ['Language', 'English'],
+            ['Time zone', 'Eastern Time (US and Canada)'],
+            ['Visibility', 'Only people in the course'],
+            ['Grading scheme', 'Letter grades, A to F'],
+            ['Late policy', '10% off for each late day'],
+            ['Home page', 'Modules'],
+            ['Course navigation', 'Home, Modules, Assignments, Quizzes, Syllabus, Grades'],
+          ].map(([label, value]) => (
+            <div key={label} style={{ display: 'grid', gridTemplateColumns: 'minmax(8rem, 12rem) 1fr', gap: t.space.md }}>
+              <Text color="secondary">{label}</Text>
+              <Text weight="bold">{value}</Text>
+            </div>
+          ))}
+          <Text as="div" size="small" color="secondary">The term and the dates are set again in the dates step.</Text>
+        </div>
+      )}
+
+      {item.kind === 'Syllabus' && (
+        <div style={frame}>
+          <Heading level="h3" variant="titleSection">Creative Writing Workshop</Heading>
+          <Text as="div">A workshop for writing short fiction and essays. Each week you read one text, write a short response and give feedback to a classmate.</Text>
+          <Text as="div" weight="bold">How you are graded</Text>
+          <ul style={{ margin: 0, paddingInlineStart: '1.25rem', display: 'flex', flexDirection: 'column', gap: t.space.xs }}>
+            <li><Text>Reading responses: 30%</Text></li>
+            <li><Text>Quizzes: 20%</Text></li>
+            <li><Text>Project proposal and reflection: 20%</Text></li>
+            <li><Text>Final portfolio: 30%</Text></li>
+          </ul>
+          <Text as="div" weight="bold">Course schedule</Text>
+          <div style={{ border: `${t.borderWidth} solid ${t.borderColor}`, borderRadius: t.radiusMd, overflow: 'hidden' }}>
+            {[['Week 1', 'Reading and responses'], ['Week 2', 'Project proposal'], ['Week 3', 'Reflection and review']].map(([w, topic], n) => (
+              <div key={w} style={{ display: 'grid', gridTemplateColumns: '6rem 1fr', gap: t.space.md, padding: t.space.md, borderTop: n ? `${t.borderWidth} solid ${t.borderColor}` : undefined }}>
+                <Text weight="bold">{w}</Text>
+                <Text>{topic}</Text>
+              </div>
+            ))}
+          </div>
+          <Text as="div" weight="bold">Where to find help</Text>
+          <Text as="div">Ask in the course discussion first. Office hours are every Tuesday, online and in person.</Text>
+        </div>
+      )}
     </div>
   )
 }
 
+// What the check found on the item, above its preview: a pill and what needs to be fixed, for each finding.
+function ItemProblems({ itemId }: { itemId?: string }) {
+  const t = useSurfaceTokens()
+  const found = findingsOf(itemId)
+  if (found.length === 0) return null
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.md, marginBlockEnd: t.space.lg }}>
+      <Text as="div" weight="bold">What needs to be fixed</Text>
+      {found.map((f, n) => (
+        <div key={n} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.sm }}>
+          <StatusPill size="sm" color={f.rule.severity === 'critical' ? 'error' : 'warning'}>{RULE_LABEL[f.rule.id] ?? f.rule.title}</StatusPill>
+          <Text>{f.detail}</Text>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// The window of an item. It opens from the previews and from the to-do list, so the problems show wherever it opens.
 export function ItemPreviewModal({ item, onClose }: { item: PreviewItem | null; onClose: () => void }) {
   return (
     <Modal open={!!item} onDismiss={onClose} size="large" label={item ? `Preview of ${item.title}` : 'Preview'}>
@@ -179,13 +292,16 @@ export function ItemPreviewModal({ item, onClose }: { item: PreviewItem | null; 
         <CloseButton placement="end" offset="small" onClick={onClose} screenReaderLabel="Close" />
         <Heading variant="titleSection" level="h2">{item?.title}</Heading>
       </Modal.Header>
-      <Modal.Body>{item && <ItemPreviewBody item={item} />}</Modal.Body>
+      <Modal.Body>
+        {item && <ItemProblems itemId={item.itemId} />}
+        {item && <ItemPreviewBody item={item} />}
+      </Modal.Body>
     </Modal>
   )
 }
 
 // The name of one item of each type, for the preview window.
-const TYPE_NAME: Record<string, string> = { assignments: 'Assignment', quizzes: 'Quiz', banks: 'Question bank', discussions: 'Discussion', pages: 'Page', announcements: 'Announcement', rubrics: 'Rubric', outcomes: 'Outcome', files: 'File', events: 'Calendar event' }
+const TYPE_NAME: Record<string, string> = { assignments: 'Assignment', quizzes: 'Quiz', banks: 'Question bank', discussions: 'Discussion', pages: 'Page', announcements: 'Announcement', rubrics: 'Rubric', settings: 'Course Settings', syllabus: 'Syllabus', outcomes: 'Outcome', files: 'File', events: 'Calendar event' }
 
 const KIND_NAME: Record<ModuleEntry['kind'], string> = { assignment: 'Assignment', quiz: 'Quiz', page: 'Page', discussion: 'Discussion', file: 'File' }
 
@@ -423,7 +539,7 @@ export function ObjectsPreview({ scope, picked, keepCurrent, description = '', h
   // Where an item sits: the module that holds it, or nowhere when it is copied on its own.
   const openRow = (type: ContentType, r: { id: string; label: string; origin: string }) => {
     const module = [...CURRENT_MODULES.map((m) => ({ id: m.id, label: m.label, entries: m.entries })), ...MODULES.map((m) => ({ id: m.id, label: m.label, entries: MODULE_ENTRIES[m.id] ?? [] }))].find((m) => m.entries.some((e) => e.itemId === r.id))
-    onOpenItem?.({ title: r.label, kind: TYPE_NAME[type.id] ?? type.label, where: module?.label ?? 'Not in a module', origin: r.origin })
+    onOpenItem?.({ itemId: r.id, title: r.label, kind: TYPE_NAME[type.id] ?? type.label, where: module?.label ?? 'Not in a module', origin: r.origin })
   }
   const heading = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
@@ -586,7 +702,7 @@ export function CoursePreview({
             {!closed[m.id] && m.entries.filter((e) => !hiddenItems?.has(e.itemId)).map((e) => (
               <div
                 key={e.itemId}
-                onClick={onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? () => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier }) : undefined}
+                onClick={onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? () => onOpenItem({ itemId: e.itemId, title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier }) : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -600,9 +716,9 @@ export function CoursePreview({
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <Text as="div" weight="bold">
                     {/* A link, so the item can be opened with the keyboard as well. */}
-                    {onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? <Link as="button" onClick={() => onOpenItem({ title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier })}>{e.title}</Link> : e.title}
+                    {onOpenItem && PREVIEW_KINDS.has(KIND_NAME[e.kind]) ? <Link as="button" onClick={() => onOpenItem({ itemId: e.itemId, title: e.title, kind: KIND_NAME[e.kind], meta: e.meta, where: m.label, origin: m.isNew ? ORIGIN.incoming : m.source === 'manual' ? ORIGIN.manual : ORIGIN.earlier })}>{e.title}</Link> : e.title}
                   </Text>
-                  <Text as="div" size="small" color="secondary">{metaFor ? metaFor(e.itemId, e.meta) : e.meta}</Text>
+                  <Text as="div" size="small" color="secondary">{metaFor ? metaFor(e.itemId, e.meta) : e.itemId.startsWith('current:') ? currentMeta(e.meta) : e.meta}</Text>
                 </span>
                 {noteFor?.(e.itemId)}
               </div>

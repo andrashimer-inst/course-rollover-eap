@@ -307,7 +307,7 @@ export default function RolloverWizard({
         created: rows.filter((r) => !r.courseWide && !r.extra && choiceOf(r, choices) !== "leave").length,
         relinked: 3,
         sentToAdmin: 1,
-        datesPlaced: dates.mode === "clear" || !adjustDates ? 0 : DATE_ITEMS.filter((i) => included(i.itemId)).length,
+        datesPlaced: dates.mode === "clear" || dates.mode === "keep" || !adjustDates ? 0 : DATE_ITEMS.filter((i) => included(i.itemId)).length,
       },
       history: buildHistory({ rows, choices, opens: opening.mode === "open" ? openingLabel(opening) : "you publish it" }),
       came,

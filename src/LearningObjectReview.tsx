@@ -403,7 +403,6 @@ export default function LearningObjectReview({
         {messageSent && <StatusPill size="sm" color="success">Message sent to your admin</StatusPill>}
         {/* Check acts on the findings, so it stands apart from the buttons that only open something. */}
         <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
-        <Button renderIcon={<IconAnalyticsLine />} onClick={() => setChecking(true)}>Run check</Button>
         <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
         <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
         <Button renderIcon={<IconEmailLine />} onClick={() => setHelpOpen(true)}>Message admin</Button>
@@ -507,7 +506,7 @@ export default function LearningObjectReview({
       </>)}
       {/* The course as it will look after the copy, with the choice made for each item. */}
       <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={previewNote} />
-      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
+      <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} onRunCheck={() => setChecking(true)} running={checking} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
       <AdminHelpModal open={helpOpen} items={(rows.filter((r) => r.hasSuggestion && !done(r)).length ? rows.filter((r) => r.hasSuggestion && !done(r)) : rows.filter((r) => r.hasSuggestion)).map((r) => ({ title: r.title, detail: r.findings.map((f) => f.detail).join(' ') || r.note?.text || '' }))} onClose={() => setHelpOpen(false)} onSend={() => setMessageSent(true)} />
     </div>
   )

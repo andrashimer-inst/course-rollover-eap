@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CloseButton, Heading, Modal, Tabs, Text } from '@instructure/ui/v11_7'
+import { Button, CloseButton, Heading, IconAnalyticsLine, Modal, Tabs, Text } from '@instructure/ui/v11_7'
 import StatusPill from './StatusPill'
 import type { ReadyStatus } from './reviewCopyData'
 import { useSurfaceTokens } from './appTheme'
@@ -76,7 +76,8 @@ export const CRITERIA: Area[] = [
   },
 ]
 
-export default function CriteriaModal({ open, onClose, results }: { open: boolean; onClose: () => void; results?: Record<string, ReadyStatus> }) {
+// `onRunCheck` adds the main action of the window: it closes the window and runs the check.
+export default function CriteriaModal({ open, onClose, results, onRunCheck, running = false }: { open: boolean; onClose: () => void; results?: Record<string, ReadyStatus>; onRunCheck?: () => void; running?: boolean }) {
   const t = useSurfaceTokens()
   const [tab, setTab] = useState(0)
   return (
@@ -123,6 +124,14 @@ export default function CriteriaModal({ open, onClose, results }: { open: boolea
           </Tabs>
         </div>
       </Modal.Body>
+      {onRunCheck && (
+        <Modal.Footer>
+          <Button onClick={onClose} margin="0 small 0 0">Close</Button>
+          <Button color="primary" renderIcon={<IconAnalyticsLine />} interaction={running ? 'disabled' : 'enabled'} onClick={() => { onClose(); onRunCheck() }}>
+            {running ? 'Checking…' : 'Run check'}
+          </Button>
+        </Modal.Footer>
+      )}
     </Modal>
   )
 }

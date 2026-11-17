@@ -66,6 +66,19 @@ export function SummaryView({
   // Clicking a column title of the history orders it by that column. A second click turns the order around.
   const [sortBy, setSortBy] = useState<'when' | 'tag' | 'text' | 'who' | null>(null)
   const [ascending, setAscending] = useState(true)
+  // The to-do list can be ordered by its two columns, inside each group. A second click turns the order around.
+  const [todoSort, setTodoSort] = useState<'content' | 'todo' | null>(null)
+  const [todoAsc, setTodoAsc] = useState(true)
+  const todoSortProps = (key: 'content' | 'todo') => ({
+    onRequestSort: () => {
+      if (todoSort === key) setTodoAsc(!todoAsc)
+      else {
+        setTodoSort(key)
+        setTodoAsc(true)
+      }
+    },
+    sortDirection: todoSort === key ? (todoAsc ? ('ascending' as const) : ('descending' as const)) : ('none' as const),
+  })
   // The to-do list sent to the educator by message, in the same window as the message to the admin in the learning object review.
   const [helpOpen, setHelpOpen] = useState(false)
   // The learning object that was clicked in the to-do list. It opens in the preview window.
@@ -94,6 +107,14 @@ export function SummaryView({
     ...summary.todo.filter((x) => x.tag !== 'Copy failed' && !x.title.startsWith('Copy failed:')),
     ...summary.failed.map(failedTodo),
   ]
+
+  // The groups of the to-do list in the order of the chosen column. Without a choice they keep the order they were made in.
+  const sortedGroups = <G extends { content?: string; entries: { title: string }[] }>(groups: G[]): G[] => {
+    if (!todoSort) return groups
+    const key = (g: G) => (todoSort === 'content' ? (g.content ?? '') : (g.entries[0]?.title ?? '')).toLowerCase()
+    const sorted = [...groups].sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0))
+    return todoAsc ? sorted : sorted.reverse()
+  }
 
   const filtered = summary.history
     .filter((h) => typeFilter === 'all' || h.tag === typeFilter)
@@ -234,9 +255,8 @@ export function SummaryView({
               <Table caption={() => 'To-do list after the copy'} themeOverride={noFill}>
                 <Table.Head themeOverride={noFill}>
                   <Table.Row themeOverride={noFill}>
-                    <Table.ColHeader themeOverride={noFill} id="todo-content" width="30%">Learning object</Table.ColHeader>
-                    <Table.ColHeader themeOverride={noFill} id="todo-item" width="40%">To do</Table.ColHeader>
-                    <Table.ColHeader themeOverride={noFill} id="todo-detail">Details</Table.ColHeader>
+                    <Table.ColHeader themeOverride={noFill} id="todo-content" width="40%" {...todoSortProps('content')}>Learning object</Table.ColHeader>
+                    <Table.ColHeader themeOverride={noFill} id="todo-item" {...todoSortProps('todo')}>To do</Table.ColHeader>
                   </Table.Row>
                 </Table.Head>
                 <Table.Body themeOverride={noFill}>
@@ -247,10 +267,9 @@ export function SummaryView({
                       <Table.Row themeOverride={noFill} key={`g-${g}`}>
                         <Table.Cell themeOverride={noFill}><Text weight="bold">{g} ({items.length})</Text></Table.Cell>
                         <Table.Cell themeOverride={noFill} />
-                        <Table.Cell themeOverride={noFill} />
                       </Table.Row>,
                       // An item with more than one problem is one row: its name once, and each problem under "To do".
-                      ...groupTodo(items).map((grp, i) => (
+                      ...sortedGroups(groupTodo(items)).map((grp, i) => (
                         <Table.Row themeOverride={noFill} key={`${g}-${i}`}>
                           <Table.Cell themeOverride={noFill}>
                             {/* A link to the item in the course. It does not go anywhere in the prototype. */}
@@ -275,13 +294,11 @@ export function SummaryView({
                                   {/* The pill says what kind of thing it is, the same pills as in the review. */}
                                   {tagOf(x) && <div style={{ marginBottom: t.space.xs }}><StatusPill size="sm" color={tagOf(x)!.tone}>{tagOf(x)!.tag}</StatusPill></div>}
                                   {x.title}
-                                  {grp.entries.length > 1 && x.detail !== x.content && <Text as="div" size="small" color="secondary">{x.detail}</Text>}
+                                  {x.detail && x.detail !== x.content && <Text as="div" size="small" color="secondary">{x.detail}</Text>}
                                 </div>
                               ))}
                             </div>
                           </Table.Cell>
-                          {/* The location is already in the first column, so details only show when it says something else, like how to fix a failed item. */}
-                          <Table.Cell themeOverride={noFill}>{grp.entries.length === 1 && grp.entries[0].detail !== grp.content ? grp.entries[0].detail : ''}</Table.Cell>
                         </Table.Row>
                       )),
                     ]

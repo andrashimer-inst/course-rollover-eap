@@ -115,6 +115,8 @@ export function buildTodo(args: {
     // Nothing yet: the dates are set in step 4.
   } else if (dates.mode === 'clear') {
     todo.push({ group: 'Set the dates', tag: 'No dates', tone: 'info', title: 'Set the dates of all items', detail: `${dated.length} items are copied with no date. They are listed on the course Settings page.` })
+  } else if (dates.mode === 'keep') {
+    todo.push({ group: 'Set the dates', tag: 'Old dates', tone: 'info', title: 'Check the dates of all items', detail: `${dated.length} items keep their Fall 2026 dates. Move them in the new course if they do not fit the term.` })
   } else {
     for (const item of dated) {
       const info = rowInfo(item, dates)
@@ -145,6 +147,12 @@ export function buildTodo(args: {
     { group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Enrollments and groups', detail: 'Canvas never copies people. Add them to the new course.' },
     { group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Feature options', detail: 'Turn them on again in Settings.' },
   )
+  // Dates set for groups or sections only reach the learners who are in them. Last on the list, because people come last.
+  const perGroup = dated.filter((i) => i.kind.includes(' · ') || dated.some((o) => o.id !== i.id && o.itemId === i.itemId))
+  if (withDates && dates.mode !== 'clear' && perGroup.length > 0) {
+    const names = [...new Set(perGroup.map((i) => i.title))]
+    todo.push({ group: 'Check after the copy', tag: 'Check', tone: 'neutral', title: 'Add learners to the groups and sections', detail: `${names.join(', ')} ${names.length === 1 ? 'has' : 'have'} dates for each group or section. Add the learners to them, so they get their date.` })
+  }
   return todo
 }
 

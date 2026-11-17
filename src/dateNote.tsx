@@ -10,6 +10,7 @@ export function dateNoteFor(state: FixDatesState, included: Included) {
   return (itemId: string): ReactNode => {
     const mine = infos.filter((r) => r.item.itemId === itemId)
     if (mine.length === 0) return NO_DATE_ITEMS.some((n) => n.itemId === itemId && included(n.itemId)) ? <StatusPill size="xs" color="info">No due date</StatusPill> : null
+    if (state.mode === 'keep') return null
     if (state.mode === 'clear') return <StatusPill size="xs" color="info">Set it later</StatusPill>
     if (mine.some((r) => r.finalClosed)) return <StatusPill size="xs" color="warning">Non-teaching day</StatusPill>
     return mine.some((r) => r.closed) ? <StatusPill size="xs" color="success">Fixed</StatusPill> : <StatusPill size="xs" color="success">Teaching day</StatusPill>
@@ -19,11 +20,26 @@ export function dateNoteFor(state: FixDatesState, included: Included) {
 // The dates of an item in the course preview, the way Canvas shows them under an item: a bold label and the date, with the
 // available-from and until dates beside the due date. They replace the old date in the item's own line. An item with several
 // rows (sections, groups) gets one line for each.
+export function currentMeta(meta: string): ReactNode {
+  const segs = meta.split(' | ')
+  const due = segs.find((seg) => /^[A-Z][a-z]{2} \d+$/.test(seg))
+  if (!due) return meta
+  const other = segs.filter((seg) => seg !== due)
+  return (
+    <>
+      {other.length > 0 && <span style={{ display: 'block' }}>{other.join(' | ')}</span>}
+      <span style={{ display: 'block' }}><strong>Due</strong> {due} at 11:59 PM</span>
+    </>
+  )
+}
+
 export function dateMetaFor(state: FixDatesState, included: Included) {
   const infos = DATE_ITEMS.filter((i) => included(i.itemId)).map((i) => rowInfo(i, state))
   const day = (d: Date, time: string) => `${fmtShort(d)} at ${time}`
   return (itemId: string, meta: string): ReactNode => {
     const mine = infos.filter((r) => r.item.itemId === itemId)
+    // Items already in the course keep their dates. The copy does not move them. Their date shows the same way as the others.
+    if (mine.length === 0 && itemId.startsWith('current:')) return currentMeta(meta)
     if (mine.length === 0) return meta
     // What the line says besides the old date, like the points.
     const rest = meta.split(' | ').filter((seg) => !/^[A-Z][a-z]{2} \d+$/.test(seg))

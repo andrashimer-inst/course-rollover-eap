@@ -88,7 +88,10 @@ export const CURRENT_MODULES: { id: string; label: string; source: 'manual' | 'c
     id: 'current:3',
     label: 'Resources',
     source: 'copied',
-    entries: [{ itemId: 'current:5', title: 'Reading list.pdf', kind: 'file', meta: 'File' }],
+    entries: [
+      { itemId: 'current:5', title: 'Reading list.pdf', kind: 'file', meta: 'File' },
+      { itemId: 'current:6', title: 'Reading reflection', kind: 'assignment', meta: 'Nov 4 | 10 pts | Submit' },
+    ],
   },
 ]
 
@@ -99,13 +102,16 @@ export const PREVIEW_NOTE = 'Select an item to preview it. Previews aren’t ava
 export const ORIGIN = { manual: 'In course', earlier: 'Earlier copy', incoming: 'This copy' }
 
 // Only these kinds can be opened in a preview.
-export const PREVIEW_KINDS = new Set(['Page', 'Assignment', 'Quiz', 'File'])
+export const PREVIEW_KINDS = new Set(['Page', 'Assignment', 'File', 'Rubric', 'Discussion', 'Announcement', 'Outcome', 'Calendar event', 'Course Settings', 'Settings', 'Syllabus'])
 
 // The item behind a line like "Course welcome (Page), in Welcome to the course", for the preview window. Null when the line is not
 // about one item, or the item is of a kind that has no preview.
-export function previewItemOf(content?: string): { title: string; kind: string; meta?: string; where: string; origin: string } | null {
+export function previewItemOf(content?: string): { itemId?: string; title: string; kind: string; meta?: string; where: string; origin: string } | null {
   const m = content?.match(/^(.*) \(([^)]+)\)(?:, in (.*))?$/)
   if (!m || !PREVIEW_KINDS.has(m[2])) return null
   const entry = Object.values(MODULE_ENTRIES).flat().find((e) => e.title === m[1])
-  return { title: m[1], kind: m[2], meta: entry?.meta, where: m[3] ?? 'Not in a module', origin: ORIGIN.incoming }
+  // The learning object of the course with this name, so the preview can say what is wrong with it.
+  const kind = m[2] === 'Settings' ? 'Course Settings' : m[2]
+  const found = CONTENT_TYPES.flatMap((c) => (c.items.length ? c.items : [{ id: c.id, label: c.label }])).find((i) => i.label === m[1] || (kind === 'Syllabus' && i.id === 'syllabus'))
+  return { itemId: found?.id, title: m[1], kind, meta: entry?.meta, where: m[3] ?? 'Not in a module', origin: ORIGIN.incoming }
 }
