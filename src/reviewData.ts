@@ -160,14 +160,10 @@ export function buildRows(scope: Scope, picked: Picked, comments: EducatorCommen
     .map((x) => x.r)
 }
 
-// Issues that affect the whole course. Each one is a row with a choice, like a learning object.
+// Issues that affect the whole course and no single item (the items carry their own findings). Each one is a row with a choice, like a learning object.
 const COURSE_ROWS: { id: string; title: string; rule: string; detail: string }[] = [
-  { id: 'course:menu', title: 'Course menu', rule: 'navigation', detail: 'The course menu shows Search, which your account asks to hide. Settings and Syllabus are visible.' },
-  { id: 'course:links', title: 'Broken links', rule: 'links', detail: '6 links between items point to the previous course and show an error: Assignment 1, Week 5 overview, How to submit your work (2 links), Portfolio guide and the Welcome announcement.' },
-  { id: 'course:missing-links', title: 'Missing links', rule: 'missing-links', detail: '3 links open external tools (Panopto video in Course welcome, Lucid whiteboard in Week 3 discussion and Turnitin in Assignment 3) that Canvas cannot connect during the copy. They need to be linked again after the copy.' },
-  { id: 'course:alt', title: 'Images without alt text', rule: 'a11y-high', detail: '14 images on 6 pages have no alt text.' },
-  { id: 'course:contrast', title: 'Color contrast', rule: 'a11y-medium', detail: 'Accessibility issue: 8 pages use text colors with too little contrast against the page background.' },
-  { id: 'course:scan', title: 'Accessibility scan', rule: 'a11y-scan', detail: 'This course was never scanned with the Course Content Accessibility Checker.' },
+  { id: 'course:menu', title: 'Course menu: Search', rule: 'navigation', detail: 'Search is visible in the course menu. Your account asks to hide it.' },
+  { id: 'course:menu-syllabus', title: 'Course menu: Syllabus', rule: 'navigation', detail: 'Syllabus is hidden in the course menu. Your account asks to show it, so students can find it.' },
 ]
 
 function courseRow(c: (typeof COURSE_ROWS)[number]): ReviewRow {

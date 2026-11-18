@@ -89,8 +89,8 @@ export default function LearningObjectReview({
   const moduleRows = shown.filter((r) => !r.courseWide && inModule.has(itemIdOf(r)))
   const standaloneRows = shown.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r)))
 
-  // The filter above the table. It is shared by the three tabs. It counts the rows of the table, so the numbers match the findings.
-  const [filter, setFilter] = useState<'all' | 'none' | 'found'>('all')
+  // The filter above the table. It is shared by the three tabs and starts on "Has findings". It counts the rows of the table, so the numbers match the findings.
+  const [filter, setFilter] = useState<'all' | 'none' | 'found'>('found')
   const countOf = (list: ReviewRow[], f: 'all' | 'none' | 'found') => list.filter((r) => f === 'all' || (f === 'found') === r.hasSuggestion).length
   const filtered = (list: ReviewRow[]) => list.filter((r) => filter === 'all' || (filter === 'found') === r.hasSuggestion)
 

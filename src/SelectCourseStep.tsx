@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react'
 import { IconSearchLine, Pagination, RadioInput, ScreenReaderContent, SimpleSelect, Table, Text, TextInput } from '@instructure/ui/v11_7'
-import { SOURCE_COURSES, SUB_ACCOUNTS, TIME_KINDS } from './courseListData'
+import { SOURCE_COURSES, SUB_ACCOUNTS, TERMS } from './courseListData'
 import type { SourceCourse } from './courseListData'
 import AutoSelect from './AutoSelect'
 import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 
 // Step 1 of the copy wizard: pick the course to copy from. One course can be chosen, so each row has a radio button.
-// The list shows 20 courses a page. It can be searched and filtered by who taught it and the kind of time shown. Clicking a column title sorts the list.
+// The list shows 20 courses a page. It can be searched and filtered by who taught it, and the term. Clicking a column title sorts the list.
 
 const noFill = { background: 'transparent' }
 
-type SortKey = 'name' | 'teacher' | 'students' | 'time' | 'checked'
+type SortKey = 'name' | 'teacher' | 'term' | 'time'
 
 const PAGE_SIZE = 20
 // Only the real courses fill the first page. The pages after it repeat the list as placeholders, to show the paging.
@@ -33,7 +33,7 @@ export default function SelectCourseStep({ selected, onSelect }: { selected: str
   const [query, setQuery] = useState('')
   const [taught, setTaught] = useState('You')
   const [subAccount, setSubAccount] = useState(SUB_ACCOUNTS[3])
-  const [time, setTime] = useState(ANY)
+  const [term, setTerm] = useState(ANY)
   const [sortBy, setSortBy] = useState<SortKey | null>(null)
   const [ascending, setAscending] = useState(true)
   const [page, setPage] = useState(1)
@@ -44,15 +44,15 @@ export default function SelectCourseStep({ selected, onSelect }: { selected: str
       if (q && !`${c.name} ${c.code} ${c.teachers.join(' ')}`.toLowerCase().includes(q)) return false
       if (subAccount !== ANY && c.subAccount !== subAccount) return false
       if (taught !== ANY && !c.teachers.includes(taught)) return false
-      if (time !== ANY && c.timeKind !== time) return false
+      if (term !== ANY && c.term !== term) return false
       return true
     })
-  }, [query, taught, time, subAccount])
+  }, [query, taught, term, subAccount])
 
   const rows = useMemo(() => {
     if (!sortBy) return shown
     const value = (c: SourceCourse) =>
-      sortBy === 'name' ? c.name.toLowerCase() : sortBy === 'teacher' ? c.teachers.join(', ').toLowerCase() : sortBy === 'students' ? c.students : sortBy === 'checked' ? (c.readinessCheckedOn ? Date.parse(c.readinessCheckedOn) : 0) : Date.parse(c.date)
+      sortBy === 'name' ? c.name.toLowerCase() : sortBy === 'teacher' ? c.teachers.join(', ').toLowerCase() : sortBy === 'term' ? TERMS.indexOf(c.term) : Date.parse(c.date)
     const sorted = [...shown].sort((a, b) => (value(a) > value(b) ? 1 : value(a) < value(b) ? -1 : 0))
     return ascending ? sorted : sorted.reverse()
   }, [shown, sortBy, ascending])
@@ -121,7 +121,7 @@ export default function SelectCourseStep({ selected, onSelect }: { selected: str
             onChange={(v) => { setTaught(v); setPage(1) }}
           />
         </div>
-        {filter('Time', time, (v) => { setTime(v); setPage(1) }, [{ id: ANY, label: 'Any time' }, ...TIME_KINDS.map((k) => ({ id: k, label: k }))])}
+        {filter('Term', term, (v) => { setTerm(v); setPage(1) }, [{ id: ANY, label: 'Any term' }, ...TERMS.map((k) => ({ id: k, label: k }))])}
       </div>
 
       <Text color="secondary" aria-live="polite">
@@ -164,9 +164,8 @@ export default function SelectCourseStep({ selected, onSelect }: { selected: str
                 <Table.ColHeader themeOverride={noFill} id="pick"><ScreenReaderContent>Select</ScreenReaderContent></Table.ColHeader>
                 <Table.ColHeader themeOverride={noFill} id="name" {...sortProps('name')}>Course</Table.ColHeader>
                 <Table.ColHeader themeOverride={noFill} id="teacher" {...sortProps('teacher')}>Taught by</Table.ColHeader>
-                <Table.ColHeader themeOverride={noFill} id="students" {...sortProps('students')}>Students</Table.ColHeader>
-                <Table.ColHeader themeOverride={noFill} id="checked" {...sortProps('checked')}>Last readiness check</Table.ColHeader>
-                <Table.ColHeader themeOverride={noFill} id="time" {...sortProps('time')}>Time</Table.ColHeader>
+                <Table.ColHeader themeOverride={noFill} id="term" {...sortProps('term')}>Term</Table.ColHeader>
+                <Table.ColHeader themeOverride={noFill} id="time" {...sortProps('time')}>Last updated</Table.ColHeader>
               </Table.Row>
             </Table.Head>
             <Table.Body themeOverride={noFill}>
@@ -193,13 +192,8 @@ export default function SelectCourseStep({ selected, onSelect }: { selected: str
                     <Text as="div" size="small" color="secondary">SIS ID: {c.sisId}</Text>
                   </Table.Cell>
                   <Table.Cell themeOverride={noFill}>{c.teachers.join(', ')}</Table.Cell>
-                  <Table.Cell themeOverride={noFill}>{c.students}</Table.Cell>
-                  {/* Empty when the readiness check never ran on this course. */}
-                  <Table.Cell themeOverride={noFill}>{c.readinessCheckedOn ?? ''}</Table.Cell>
-                  <Table.Cell themeOverride={noFill}>
-                    <Text as="div">{c.timeKind}</Text>
-                    <Text as="div" size="small" color="secondary">{c.date}</Text>
-                  </Table.Cell>
+                  <Table.Cell themeOverride={noFill}>{c.term}</Table.Cell>
+                  <Table.Cell themeOverride={noFill}>{c.date}</Table.Cell>
                 </Table.Row>
               ))}
             </Table.Body>

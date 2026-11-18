@@ -12,6 +12,8 @@ export type SourceCourse = {
   // "You" for the signed-in educator, otherwise the names of the other teachers.
   teachers: string[]
   students: number
+  // The term the course ran in, worked out from its date.
+  term: string
   timeKind: TimeKind
   date: string
   // When the course readiness check last ran on this course. Missing when it never ran.
@@ -20,7 +22,7 @@ export type SourceCourse = {
 
 export const TIME_KINDS: TimeKind[] = ['Last used', 'Concluded', 'Last updated']
 
-const RAW_COURSES: Omit<SourceCourse, 'sisId' | 'readinessCheckedOn' | 'subAccount'>[] = [
+const RAW_COURSES: Omit<SourceCourse, 'sisId' | 'readinessCheckedOn' | 'subAccount' | 'term'>[] = [
   { name: 'Design Portfolio', code: 'DES 310', teachers: ['You'], students: 28, timeKind: 'Last used', date: 'Oct 6, 2025' },
   { name: 'Biology 101', code: 'BIO 101', teachers: ['You', 'Maria Okafor'], students: 112, timeKind: 'Concluded', date: 'Dec 19, 2025' },
   { name: 'Intro to Design', code: 'DES 110', teachers: ['You', 'Dana Reyes'], students: 36, timeKind: 'Last updated', date: 'Nov 2, 2025' },
@@ -99,9 +101,20 @@ const SUB_ACCOUNT_OF: Record<string, string> = {
   BIO: SUB_ACCOUNTS[3], CHE: SUB_ACCOUNTS[3], PHY: SUB_ACCOUNTS[3], MAT: SUB_ACCOUNTS[3], ENV: SUB_ACCOUNTS[3], GEO: SUB_ACCOUNTS[3], CS: SUB_ACCOUNTS[3],
 }
 
+// Spring ends in May, Summer runs June to August, Fall starts in September.
+const termOf = (date: string) => {
+  const d = new Date(date)
+  const m = d.getMonth()
+  const season = m <= 4 ? 'Spring' : m <= 7 ? 'Summer' : 'Fall'
+  return `${season} ${d.getFullYear()}`
+}
+
+export const TERMS = ['Fall 2025', 'Summer 2025', 'Spring 2025', 'Fall 2024']
+
 export const SOURCE_COURSES: SourceCourse[] = RAW_COURSES.map((c, i) => ({
   ...c,
   sisId: `SIS-${2025100 + i * 7 + 3}`,
+  term: termOf(c.date),
   readinessCheckedOn: CHECKED[c.name],
   subAccount: SUB_ACCOUNT_OF[c.code.split(' ')[0]],
 }))

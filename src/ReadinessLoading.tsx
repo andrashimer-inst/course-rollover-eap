@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconCheckMarkSolid, Spinner, Text } from '@instructure/ui/v11_7'
-import StatusPill from './StatusPill'
 import { useSurfaceTokens } from './appTheme'
 import { CRITERIA, CRITERIA_NAME } from './CriteriaModal'
 import { DESIGN_RULES } from './designCheckData'
@@ -79,9 +78,12 @@ export default function ReadinessLoading({ areas, onDone }: { areas: string[]; o
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: t.space.sm }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <Text as="div" weight="bold">{area}</Text>
-                  {/* A finished area says so with a green pill and a check inside it. */}
+                  {/* A finished area says so in text, with the same green check as the criteria. */}
                   {areaDone ? (
-                    <div style={{ marginBlockStart: t.space.xs }}><StatusPill size="xs" color="success" icon={<IconCheckMarkSolid />}>Checked</StatusPill></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: t.space.sm, color: t.successTextColor }}>
+                      <span aria-hidden="true" style={{ display: 'inline-flex', flex: '0 0 1.25rem', justifyContent: 'center' }}><IconCheckMarkSolid /></span>
+                      <Text size="small">Checked</Text>
+                    </div>
                   ) : (
                     <Text as="div" size="small" color="secondary">{areaActive ? 'Checking' : 'Waiting'}</Text>
                   )}
