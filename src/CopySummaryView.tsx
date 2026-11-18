@@ -6,6 +6,7 @@ import AutoSelect from './AutoSelect'
 import Pager from './Pager'
 import ReadinessResults from './ReadinessResults'
 import ReadinessLoading from './ReadinessLoading'
+import { CRITERIA_NAME } from './CriteriaModal'
 import FigmaAlert from './FigmaAlert'
 import StatusPill from './StatusPill'
 import { PEOPLE } from './copyHistory'
@@ -231,6 +232,13 @@ export function SummaryView({
                   {checking ? 'Checking…' : 'Run check'}
                 </Button>
               </div>
+              {/* The name of the criteria the check ran against. The loading screen shows it itself. */}
+              {!checking && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xs }}>
+                  <Text as="div" size="small" color="secondary">Criteria</Text>
+                  <Text as="div" weight="bold">{CRITERIA_NAME}</Text>
+                </div>
+              )}
               {checking ? (
                 <ReadinessLoading areas={summary.check.map((g) => g.dimension)} onDone={() => setChecking(false)} />
               ) : (
