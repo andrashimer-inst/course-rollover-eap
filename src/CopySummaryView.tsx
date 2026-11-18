@@ -165,11 +165,10 @@ export function SummaryView({
               <div
                 key={label}
                 style={{
-                  background: t.containerColor,
-                  borderRadius: t.radiusCardMd,
+                  background: card ? t.containerColor : undefined,
+                  borderRadius: card ? t.radiusCardMd : undefined,
                   boxShadow: card ? t.shadowResting : undefined,
-                  border: card ? undefined : `${t.borderWidth} solid ${t.borderColor}`,
-                  padding: t.space.lg,
+                  padding: card ? t.space.lg : 0,
                 }}
               >
                 <Metric textAlign="start" renderLabel={<Text size="medium">{label}</Text>} renderValue={String(value)} />

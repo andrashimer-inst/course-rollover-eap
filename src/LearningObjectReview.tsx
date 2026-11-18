@@ -175,7 +175,7 @@ export default function LearningObjectReview({
           <div
             role="region"
             aria-label={label}
-            style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.sm, alignItems: 'center', padding: t.space.md, borderRadius: t.radiusCardSm, background: t.containerColor, boxShadow: t.shadowResting }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.sm, alignItems: 'center', padding: t.space.md, borderRadius: t.radiusCardSm, background: legacy ? undefined : t.containerColor, boxShadow: legacy ? undefined : t.shadowResting, borderBlock: legacy ? `${t.borderWidth} solid ${t.borderColor}` : undefined }}
           >
             <Text weight="bold">{selected.length} selected</Text>
             <div style={{ width: '16rem', maxWidth: '100%' }}>

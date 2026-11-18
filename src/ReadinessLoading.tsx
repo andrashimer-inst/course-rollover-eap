@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconCheckMarkSolid, Spinner, Text } from '@instructure/ui/v11_7'
-import { useSurfaceTokens } from './appTheme'
+import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 import { CRITERIA, CRITERIA_NAME } from './CriteriaModal'
 import { DESIGN_RULES } from './designCheckData'
 
@@ -20,6 +20,7 @@ const checksOf = (area: string): string[] => {
 
 export default function ReadinessLoading({ areas, onDone }: { areas: string[]; onDone: () => void }) {
   const t = useSurfaceTokens()
+  const legacy = useAppThemeKey() === 'legacy'
   const groups = useMemo(() => areas.map((area) => ({ area, checks: checksOf(area) })), [areas])
   const total = groups.reduce((n, g) => n + Math.max(1, g.checks.length), 0)
   // How many criteria are done, counted over all areas in order.
@@ -51,9 +52,9 @@ export default function ReadinessLoading({ areas, onDone }: { areas: string[]; o
           listStyle: 'none',
           margin: `${t.space.md} 0 0`,
           padding: 0,
-          background: t.containerColor,
-          borderRadius: t.radiusCardMd,
-          boxShadow: t.shadowResting,
+          background: legacy ? undefined : t.containerColor,
+          borderRadius: legacy ? undefined : t.radiusCardMd,
+          boxShadow: legacy ? undefined : t.shadowResting,
           overflow: 'hidden',
         }}
       >

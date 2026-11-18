@@ -326,6 +326,9 @@ export default function ContentStep({
   hidden?: Set<string>
 }) {
   const t = useSurfaceTokens()
+  // Legacy is flat: the sections stand apart by white space, not by cards.
+  const legacy = useAppThemeKey() === 'legacy'
+  const sectionGap = legacy ? t.space.xxl : t.space.xl
   // The item of the preview that was clicked. It opens in a window.
   const [openItem, setOpenItem] = useState<PreviewItem | null>(null)
   // `chosen` is what was ticked. `picked` adds the learning objects that come with a ticked module.
@@ -357,10 +360,10 @@ export default function ContentStep({
     <div
       style={{
         boxSizing: 'border-box',
-        padding: t.space.lg,
-        borderRadius: t.radiusCardMd,
-        background: t.containerColor,
-        boxShadow: t.shadowResting,
+        padding: legacy ? 0 : t.space.lg,
+        borderRadius: legacy ? undefined : t.radiusCardMd,
+        background: legacy ? undefined : t.containerColor,
+        boxShadow: legacy ? undefined : t.shadowResting,
         display: 'flex',
         flexDirection: 'column',
         gap: t.space.md,
@@ -411,19 +414,19 @@ export default function ContentStep({
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xl }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: sectionGap }}>
       {scopeCard}
 
       {/* The list to tick from and the preview of the course sit side by side. On a narrow page they stack. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: t.space.xl }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: sectionGap }}>
       {scope === 'part' && (
         <div style={{ flex: '1 1 24rem', minWidth: 0, display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
           <div
             style={{
-              background: t.containerColor,
-              borderRadius: t.radiusCardMd,
-              boxShadow: t.shadowResting,
-              padding: t.space.lg,
+              background: legacy ? undefined : t.containerColor,
+              borderRadius: legacy ? undefined : t.radiusCardMd,
+              boxShadow: legacy ? undefined : t.shadowResting,
+              padding: legacy ? 0 : t.space.lg,
             }}
           >
             <div style={{ marginBottom: t.space.md, display: 'flex', flexDirection: 'column', gap: t.space.xs }}>

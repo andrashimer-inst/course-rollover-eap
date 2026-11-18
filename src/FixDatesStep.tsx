@@ -263,16 +263,18 @@ export default function FixDatesStep({
     </div>
   )
 
+  // Legacy has no cards, so the sections stand apart by white space alone: the section gap of the spacing guide (48px).
+  const sectionGap = card ? t.space.xl : `calc(${t.space.xxl} + ${t.space.lg})`
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xl }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: sectionGap }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: card ? t.space.lg : sectionGap }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: t.space.md }}>
           <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
           <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
         </div>
         <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={preview} noteFor={dateNote} metaFor={dateMetaFor(state, included)} />
         {/* The date placement and the course publishing are two cards side by side. On a narrow page they stack. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: card ? t.space.lg : sectionGap }}>
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>{modeCard}</div>
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             <PublishCards opening={opening} setOpening={setOpening} />
