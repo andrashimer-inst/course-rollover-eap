@@ -156,12 +156,11 @@ export function SummaryView({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))', gap: t.space.lg }}>
             {[
               [created, 'Items copied'],
-              [summary.stats.relinked, 'Tools relinked'],
-              [summary.stats.sentToAdmin, 'Sent to admin'],
+              [stills, 'Open to-do items'],
               [summary.stats.datesPlaced, 'Dates updated'],
               [notCopied.length, 'Not copied'],
-              [stills, 'Open to-do items'],
-            ].map(([value, label]) => (
+              [summary.stats.sentToAdmin, 'Asked for help'],
+            ].filter(([value, label]) => label !== 'Asked for help' || Number(value) > 0).map(([value, label]) => (
               <div
                 key={label}
                 style={{

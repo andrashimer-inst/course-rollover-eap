@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   Button,
@@ -20,6 +20,7 @@ import {
   Text,
   View,
 } from '@instructure/ui/v11_7'
+import FigmaAlert from './FigmaAlert'
 import StatusPill from './StatusPill'
 import ReadinessLoading from './ReadinessLoading'
 import { dimensionsOf, readiness } from './reviewCopyData'
@@ -42,7 +43,7 @@ const noFill = { background: 'transparent' }
 const MODULES = CONTENT_TYPES.find((c) => c.id === 'modules')!.items
 
 export default function LearningObjectReview({
-  rows, choices, setChoices, scope, mode, picked, dupes, todo, onToggleTodo,
+  rows, choices, setChoices, scope, mode, picked, dupes, todo, onToggleTodo, onHelpSent,
 }: {
   rows: ReviewRow[]
   choices: Record<string, Choice>
@@ -50,6 +51,8 @@ export default function LearningObjectReview({
   // The to-do list so far, from the choices made.
   todo: TodoItem[]
   onToggleTodo: () => void
+  // Called when the help request is sent, so the summary can say it was.
+  onHelpSent: () => void
   scope: Scope
   mode: CopyMode
   picked: Picked
@@ -64,6 +67,12 @@ export default function LearningObjectReview({
   // One message to the admin about the whole review, and whether it was sent.
   const [helpOpen, setHelpOpen] = useState(false)
   const [messageSent, setMessageSent] = useState(false)
+  // The toast goes away by itself.
+  useEffect(() => {
+    if (!messageSent) return
+    const id = window.setTimeout(() => setMessageSent(false), 5000)
+    return () => window.clearTimeout(id)
+  }, [messageSent])
   // Module bars open and close like an accordion. They start open.
   const [closedGroups, setClosedGroups] = useState<string[]>([])
   const toggleGroup = (g: string) => setClosedGroups(closedGroups.includes(g) ? closedGroups.filter((x) => x !== g) : [...closedGroups, g])
@@ -90,9 +99,16 @@ export default function LearningObjectReview({
   const standaloneRows = shown.filter((r) => !r.courseWide && !inModule.has(itemIdOf(r)))
 
   // The filter above the table. It is shared by the three tabs and starts on "Has findings". It counts the rows of the table, so the numbers match the findings.
-  const [filter, setFilter] = useState<'all' | 'none' | 'found'>('found')
-  const countOf = (list: ReviewRow[], f: 'all' | 'none' | 'found') => list.filter((r) => f === 'all' || (f === 'found') === r.hasSuggestion).length
-  const filtered = (list: ReviewRow[]) => list.filter((r) => filter === 'all' || (filter === 'found') === r.hasSuggestion)
+  // The findings filter shows one choice at a time: all findings, nothing found, has findings, or one kind of finding (the pills of the rows).
+  // It is shared by the three tabs. A filter value is 'all', 'none', 'found', or 'rule:<id>'. It starts on "Has findings".
+  const [filter, setFilter] = useState<string>('found')
+  const matches = (r: ReviewRow, f: string) =>
+    f === 'all' ? true : f === 'none' ? !r.hasSuggestion : f === 'found' ? r.hasSuggestion : r.findings.some((x) => `rule:${x.rule.id}` === f)
+  const countOf = (list: ReviewRow[], f: string) => list.filter((r) => matches(r, f)).length
+  const filtered = (list: ReviewRow[]) => list.filter((r) => matches(r, filter))
+  // Every kind of finding in the review, named like its pill.
+  const kinds = [...new Map(rows.flatMap((r) => r.findings).map((f) => [f.rule.id, RULE_LABEL[f.rule.id] ?? f.rule.title])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1]))
 
   // Findings still to review in each tab: the rows with no action chosen yet. It shows on the tab, so it is clear where work is left.
   const left = (list: ReviewRow[]) => list.filter((r) => !done(r)).length
@@ -381,30 +397,36 @@ export default function LearningObjectReview({
   }
 
   // The buttons under the tabs.
+  // Only the kinds of finding the open tab has. A kind with no rows there is left out, unless it is the one chosen.
+  const shownKinds = (list: ReviewRow[]) => kinds.filter(([id]) => countOf(list, `rule:${id}`) > 0 || filter === `rule:${id}`)
   const filterRow = (list: ReviewRow[]) => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'center', justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: t.space.sm }}>
-        <Text weight="bold">Filter</Text>
-        <div style={{ width: '16rem', maxWidth: '100%' }}>
+        <Text weight="bold">Findings</Text>
+        <div style={{ width: '18rem', maxWidth: '100%' }}>
+          {shownKinds(list).length > 0 && <style>{`[id$="filter-rule-${shownKinds(list)[0][0]}"] { border-top: ${t.borderWidth} solid ${t.strokeBase}; }`}</style>}
           <SimpleSelect
-            renderLabel={<ScreenReaderContent>Filter items</ScreenReaderContent>}
+            renderLabel={<ScreenReaderContent>Filter by findings</ScreenReaderContent>}
             value={filter}
-            onChange={(_e, { value }) => { setFilter(String(value) as 'all' | 'none' | 'found'); setSelected([]) }}
+            onChange={(_e, { value }) => { setFilter(String(value)); setSelected([]) }}
           >
-            <SimpleSelect.Option id="filter-all" value="all">{`All items (${countOf(list, 'all')})`}</SimpleSelect.Option>
-            <SimpleSelect.Option id="filter-none" value="none">{`Nothing found (${countOf(list, 'none')})`}</SimpleSelect.Option>
+            <SimpleSelect.Option id="filter-all" value="all">{`All findings (${countOf(list, 'all')})`}</SimpleSelect.Option>
             <SimpleSelect.Option id="filter-found" value="found">{`Has findings (${countOf(list, 'found')})`}</SimpleSelect.Option>
+            <SimpleSelect.Option id="filter-none" value="none">{`Nothing found (${countOf(list, 'none')})`}</SimpleSelect.Option>
+            {/* The specific kinds of finding. A line above the first one sets them apart (see the style above). */}
+            {shownKinds(list).map(([id, label]) => (
+              <SimpleSelect.Option key={id} id={`filter-rule-${id}`} value={`rule:${id}`}>{`${label} (${countOf(list, `rule:${id}`)})`}</SimpleSelect.Option>
+            ))}
           </SimpleSelect>
         </div>
       </div>
       {/* The check, preview, message and to-do buttons at the end of the row, under the tabs. */}
       <div style={{ marginInlineStart: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: t.space.md }}>
-        {messageSent && <StatusPill size="sm" color="success">Message sent to your admin</StatusPill>}
         {/* Check acts on the findings, so it stands apart from the buttons that only open something. */}
         <Button renderIcon={<IconInfoLine />} onClick={() => setCriteriaOpen(true)}>Criteria</Button>
         <span aria-hidden="true" style={{ alignSelf: 'stretch', width: t.borderWidth, minHeight: '2rem', background: t.textColor }} />
         <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
-        <Button renderIcon={<IconEmailLine />} onClick={() => setHelpOpen(true)}>Message admin</Button>
+        <Button renderIcon={<IconEmailLine />} onClick={() => setHelpOpen(true)}>Ask for help</Button>
         <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todo.length})</Button>
       </div>
     </div>
@@ -412,6 +434,14 @@ export default function LearningObjectReview({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg }}>
+      {/* Sending the help request shows a success toast that disappears by itself after a few seconds. */}
+      <div role="status" aria-live="polite" style={{ position: 'fixed', top: t.space.lg, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, width: 'min(32rem, calc(100% - 2rem))' }}>
+        {messageSent && (
+          <FigmaAlert variant="success" type="floating" dismissible onDismiss={() => setMessageSent(false)} closeLabel="Close the message">
+            Your help request was sent.
+          </FigmaAlert>
+        )}
+      </div>
       {/* Running the readiness check shows the same loading as the wait after step 2. */}
       {checking && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.lg, padding: `${t.space.xl} 0` }}>
@@ -504,9 +534,9 @@ export default function LearningObjectReview({
       </Tabs>
       </>)}
       {/* The course as it will look after the copy, with the choice made for each item. */}
-      <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={previewNote} />
+      <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={{ moduleIds, keepCurrent: merging, hidden: hiddenModules(dupes), scope, picked }} noteFor={previewNote} leftOut={(id) => rows.some((r) => itemIdOf(r) === id && choiceOf(r, choices) === 'leave')} />
       <CriteriaModal open={criteriaOpen} onClose={() => setCriteriaOpen(false)} onRunCheck={() => setChecking(true)} running={checking} results={Object.fromEntries(readiness(rows, choices).map((x) => [x.rule.id, x.status]))} />
-      <AdminHelpModal open={helpOpen} items={(rows.filter((r) => r.hasSuggestion && !done(r)).length ? rows.filter((r) => r.hasSuggestion && !done(r)) : rows.filter((r) => r.hasSuggestion)).map((r) => ({ title: r.title, detail: r.findings.map((f) => f.detail).join(' ') || r.note?.text || '' }))} onClose={() => setHelpOpen(false)} onSend={() => setMessageSent(true)} />
+      <AdminHelpModal open={helpOpen} items={(rows.filter((r) => r.hasSuggestion && !done(r)).length ? rows.filter((r) => r.hasSuggestion && !done(r)) : rows.filter((r) => r.hasSuggestion)).map((r) => ({ title: r.title, detail: r.findings.map((f) => f.detail).join(' ') || r.note?.text || '' }))} onClose={() => setHelpOpen(false)} onSend={() => { setMessageSent(true); onHelpSent() }} />
     </div>
   )
 }

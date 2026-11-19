@@ -6,6 +6,7 @@ import ReadinessLoading from './ReadinessLoading'
 import { CoursePreview, ItemPreviewModal, ObjectsPreview } from './ContentStep'
 import type { PreviewItem } from './ContentStep'
 import CriteriaModal from './CriteriaModal'
+import PublishCards from './PublishCards'
 import { dateMetaFor, dateNoteFor } from './dateNote'
 import { CONTENT_TYPES } from './courseContentData'
 import { withPulledIn } from './contentHelpers'
@@ -24,7 +25,7 @@ import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 const MODULES = CONTENT_TYPES.find((c) => c.id === 'modules')!.items
 
 export default function ReviewAndCopyStep({
-  included, rows, choices, scope, mode, picked, dupes, dates, readyRan, setReadyRan, todoCount, onToggleTodo,
+  included, rows, choices, scope, mode, picked, dupes, dates, readyRan, setReadyRan, opening, setOpening, todoCount, onToggleTodo,
 }: {
   rows: ReviewRow[]
   choices: Record<string, Choice>
@@ -37,7 +38,9 @@ export default function ReviewAndCopyStep({
   included: Included
   readyRan: boolean
   setReadyRan: (v: boolean) => void
+  // When students see the course. It is chosen here, above the preview, because the readiness check can hold the publishing.
   opening: Opening
+  setOpening: (o: Opening) => void
   // The to-do list so far, which opens beside the page.
   todoCount: number
   onToggleTodo: () => void
@@ -95,6 +98,7 @@ export default function ReviewAndCopyStep({
   const hidden = hiddenModules(dupes)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.xxl }}>
+      <PublishCards opening={opening} setOpening={setOpening} />
       <div style={cardStyle}>
         {/* Card title and description, with the criteria, the check and the to-do list at the end of the row. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -114,10 +118,10 @@ export default function ReviewAndCopyStep({
           ) : (
             <Tabs onRequestTabChange={(_e, { index }) => setViewTab(index)}>
               <Tabs.Panel id="final-modules" renderTitle="Modules" variant="secondary" isSelected={viewTab === 0} padding="general.spaceMd 0 0 0">
-                <CoursePreview bare moduleIds={moduleIds} keepCurrent={merging} highlightNew hidden={hidden} noteFor={noteFor} metaFor={dateMetaFor(dates, included)} onOpenItem={setOpenItem} />
+                <CoursePreview bare showFindings leftOut={(id) => !included(id)} moduleIds={moduleIds} keepCurrent={merging} highlightNew hidden={hidden} noteFor={noteFor} metaFor={dateMetaFor(dates, included)} onOpenItem={setOpenItem} />
               </Tabs.Panel>
               <Tabs.Panel id="final-objects" renderTitle="Learning objects" variant="secondary" isSelected={viewTab === 1} padding="general.spaceMd 0 0 0">
-                <ObjectsPreview bare scope={scope} picked={withPulledIn(picked)} keepCurrent={merging} noteFor={noteFor} onOpenItem={setOpenItem} />
+                <ObjectsPreview bare showFindings leftOut={(id) => !included(id)} scope={scope} picked={withPulledIn(picked)} keepCurrent={merging} noteFor={noteFor} onOpenItem={setOpenItem} />
               </Tabs.Panel>
             </Tabs>
           )}

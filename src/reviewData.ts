@@ -65,7 +65,6 @@ const KIND_LABEL: Record<TypeId, string> = {
 
 // Where the check found something, by item id. The detail is why this item was flagged.
 const HITS: Record<string, { rule: string; detail: string }[]> = {
-  'modules:3': [{ rule: 'unused', detail: 'No student opened this module last term.' }],
   'assignments:1': [{ rule: 'links', detail: '1 link in the instructions points to the previous course and shows an error.' }],
   'assignments:3': [{ rule: 'missing-links', detail: 'The Turnitin link cannot be copied. Link it again after the copy.' }],
   'assignments:4': [{ rule: 'unused', detail: 'Only 2 students submitted it last term.' }],
@@ -94,6 +93,7 @@ const HITS: Record<string, { rule: string; detail: string }[]> = {
   'announcements:3': [{ rule: 'unused', detail: 'It reminds students of a quiz date from last term, and no student opened it.' }],
   'announcements:4': [{ rule: 'unused', detail: 'The new office hours are already on the welcome page, and no student opened this notice.' }],
   'files:3': [{ rule: 'unused', detail: 'No student opened this file last term.' }],
+  'files:4': [{ rule: 'unused', detail: 'No student opened this file last term.' }],
   'files:5': [
     { rule: 'unused', detail: 'This 2023 file is in an old format, and no student opened it last term.' },
     { rule: 'a11y-high', detail: '5 images in these slides have no alt text.' },
@@ -243,10 +243,11 @@ export const RULE_LABEL: Record<string, string> = {
   'missing-links': 'Needs relinking',
   navigation: 'Menu setup',
   rubrics: 'Rubric not attached',
-  'a11y-scan': 'Not scanned',
-  'a11y-critical': 'Missing captions',
-  'a11y-high': 'Missing alt text',
-  'a11y-medium': 'Color contrast',
+  'a11y-scan': 'Accessibility: not scanned',
+  'a11y-critical': 'Accessibility: missing captions',
+  'a11y-high': 'Accessibility: missing alt text',
+  'a11y-open': 'Accessibility: open issues',
+  'a11y-medium': 'Accessibility: color contrast',
 }
 
 // The same for what the teaching team wrote, by comment id.

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { CloseButton, Heading, IconArrowOpenStartSolid, IconButton, Modal, Tabs, Text } from '@instructure/ui/v11_7'
-import { CoursePreview, ItemPreviewBody, ObjectsPreview } from './ContentStep'
+import { CoursePreview, ItemPreviewBody, ItemProblems, ObjectsPreview } from './ContentStep'
 import type { PreviewItem } from './ContentStep'
 import { withPulledIn } from './contentHelpers'
 import type { Picked, Scope } from './contentHelpers'
@@ -22,7 +22,7 @@ export type PreviewSource = {
 }
 
 export default function CoursePreviewModal({
-  open, onClose, source, noteFor, metaFor,
+  open, onClose, source, noteFor, metaFor, leftOut,
 }: {
   open: boolean
   onClose: () => void
@@ -30,6 +30,8 @@ export default function CoursePreviewModal({
   noteFor: (itemId: string) => ReactNode
   // The dates under each item, when the dates are known (steps 4 and 5).
   metaFor?: (itemId: string, meta: string) => ReactNode
+  // Items left out of the copy show only their pill, with no findings.
+  leftOut?: (itemId: string) => boolean
 }) {
   const t = useSurfaceTokens()
   const [tab, setTab] = useState(0)
@@ -54,16 +56,19 @@ export default function CoursePreviewModal({
       </Modal.Header>
       <Modal.Body>
         {item ? (
-          <ItemPreviewBody item={item} />
+          <>
+            <ItemProblems itemId={item.itemId} />
+            {!item.noBody && <ItemPreviewBody item={item} />}
+          </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: t.space.sm }}>
           <Text as="div" color="secondary">{PREVIEW_NOTE}</Text>
           <Tabs onRequestTabChange={(_e, { index }) => setTab(index)}>
             <Tabs.Panel id="preview-modules" renderTitle="Modules" isSelected={tab === 0} padding="general.spaceMd 0 0 0">
-              <CoursePreview bare moduleIds={source.moduleIds} keepCurrent={source.keepCurrent} highlightNew hidden={source.hidden} noteFor={noteFor} metaFor={metaFor} onOpenItem={setItem} />
+              <CoursePreview bare showFindings leftOut={leftOut} moduleIds={source.moduleIds} keepCurrent={source.keepCurrent} highlightNew hidden={source.hidden} noteFor={noteFor} metaFor={metaFor} onOpenItem={setItem} />
             </Tabs.Panel>
             <Tabs.Panel id="preview-objects" renderTitle="Learning objects" isSelected={tab === 1} padding="general.spaceMd 0 0 0">
-              <ObjectsPreview bare scope={source.scope} picked={withPulledIn(source.picked)} keepCurrent={source.keepCurrent} noteFor={noteFor} onOpenItem={setItem} />
+              <ObjectsPreview bare showFindings leftOut={leftOut} scope={source.scope} picked={withPulledIn(source.picked)} keepCurrent={source.keepCurrent} noteFor={noteFor} onOpenItem={setItem} />
             </Tabs.Panel>
           </Tabs>
           </div>

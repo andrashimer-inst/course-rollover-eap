@@ -4,10 +4,11 @@ import {
   Button,
   CircleAlertInstUIIcon,
   CircleCheckInstUIIcon,
+  IconArrowOpenDownLine,
   IconAssignmentLine,
   IconEyeLine,
-  RadioInput,
-  RadioInputGroup,
+  Menu,
+  ScreenReaderContent,
   SimpleSelect,
   Table,
   Text,
@@ -15,11 +16,11 @@ import {
   Tooltip,
 } from '@instructure/ui/v11_7'
 import DatePickerButton from './DatePickerButton'
-import PublishCards from './PublishCards'
 import CoursePreviewModal from './CoursePreviewModal'
 import type { PreviewSource } from './CoursePreviewModal'
-import type { Opening } from './reviewCopyData'
+import RadioWithContent from './RadioWithContent'
 import FigmaAlert from './FigmaAlert'
+import type { ReactNode } from 'react'
 import StatusPill from './StatusPill'
 import Pager from './Pager'
 import { dateMetaFor, dateNoteFor } from './dateNote'
@@ -60,8 +61,8 @@ const dateFieldProps = {
 const MODES: { id: DateMode; title: string; body: string }[] = [
   {
     id: 'calendar',
-    title: 'Place on the Spring 2027 calendar',
-    body: 'Each item keeps its week of term and weekday. Spring break is skipped.',
+    title: 'Move dates to the new term',
+    body: 'Each item keeps its week of term and weekday.',
   },
   {
     id: 'keep',
@@ -111,15 +112,13 @@ function DateBlock({ label, first = false, children }: { label?: string; first?:
 }
 
 export default function FixDatesStep({
-  included, preview, courseName, opening, setOpening, state, setState, todoCount, onToggleTodo,
+  included, preview, courseName, state, setState, todoCount, onToggleTodo, choiceNote,
 }: {
   // The learning objects that are copied. The table lists the dates of these.
   included: Included
   // What the course preview shows: the same course as in the review step.
   preview: PreviewSource
   // When students see the course. It is set here, with the other dates.
-  opening: Opening
-  setOpening: (o: Opening) => void
   // The course the content comes from. Its first day is shown under the new first day.
   courseName: string
   state: FixDatesState
@@ -127,6 +126,8 @@ export default function FixDatesStep({
   // The to-do list so far, which opens beside the page.
   todoCount: number
   onToggleTodo: () => void
+  // What was chosen for an item in step 3, as the same pill. It shows in the course preview, next to the date note.
+  choiceNote: (itemId: string) => ReactNode
 }) {
   const t = useSurfaceTokens()
   const card = useAppThemeKey() !== 'legacy'
@@ -143,11 +144,26 @@ export default function FixDatesStep({
   // The items with no due date come after the dated ones. The table shows 10 rows a page.
   const noDated = clear ? [] : NO_DATE_ITEMS.filter((item) => included(item.itemId))
   const [page, setPage] = useState(1)
-  const pageCount = Math.max(1, Math.ceil((infos.length + noDated.length) / PAGE_SIZE))
+  // The filter above the table covers every check pill of the Check column, and "All". A row with several dates matches
+  // when any of its dates has the pill. An item with no due date has "No due date", or "Fixed" once it got a date on a teaching day.
+  type DateFilter = 'all' | 'closed' | 'fixed' | 'teaching' | 'nodue'
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all')
+  const statusesOf = (r: (typeof infos)[number]): DateFilter[] =>
+    [r, ...r.subs].map((x) => (x.finalClosed ? 'closed' : x.closed ? 'fixed' : 'teaching'))
+  const noDateStatus = (item: (typeof noDated)[number]): DateFilter => {
+    const pick = state.noDate[item.id] ?? 'empty'
+    const date = pick === 'empty' ? null : pick === 'last' ? lastDayOf(state) : new Date(`${pick}T12:00:00`)
+    return date && !closedName(date) ? 'fixed' : 'nodue'
+  }
+  const matchesFilter = (statuses: DateFilter[], f: DateFilter) => f === 'all' || statuses.includes(f)
+  const countFor = (f: DateFilter) => infos.filter((r) => matchesFilter(statusesOf(r), f)).length + noDated.filter((i) => matchesFilter([noDateStatus(i)], f)).length
+  const shownInfos = clear ? infos : infos.filter((r) => matchesFilter(statusesOf(r), dateFilter))
+  const shownNoDated = noDated.filter((i) => matchesFilter([noDateStatus(i)], dateFilter))
+  const pageCount = Math.max(1, Math.ceil((shownInfos.length + shownNoDated.length) / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount)
   const from = (currentPage - 1) * PAGE_SIZE
-  const pageInfos = infos.slice(from, from + PAGE_SIZE)
-  const pageNoDate = noDated.slice(Math.max(0, from - infos.length), Math.max(0, from + PAGE_SIZE - infos.length))
+  const pageInfos = shownInfos.slice(from, from + PAGE_SIZE)
+  const pageNoDate = shownNoDated.slice(Math.max(0, from - shownInfos.length), Math.max(0, from + PAGE_SIZE - shownInfos.length))
   // Items still on a non-teaching day. A fixed item moves to a teaching day, so it no longer counts.
   const subsOf = infos.flatMap((r) => r.subs)
   const closedCount = infos.filter((r) => !clear && r.finalClosed !== null).length + subsOf.filter((x) => !clear && x.finalClosed !== null).length
@@ -183,20 +199,31 @@ export default function FixDatesStep({
   }
   const setMode = (mode: DateMode) => setState({ ...state, mode, fixAll: '', rows: {} })
 
-  // Fixes every item that is still on a non-teaching day in one go. It sits in the card of the way dates move.
+  // Fixes every item that is still on a non-teaching day in one go. It is a button that opens a menu of the ways to fix them, at the end of the
+  // row with the filter. Choosing the choice that is on again takes it back for every item it moved. The choice that is on has a mark.
   const fixAll = infos.some((r) => r.closed || r.subs.some((x) => x.closed)) ? (
-    <div style={{ width: FIELD_WIDTH, maxWidth: '100%', flex: '0 0 auto' }}>
-        <SimpleSelect
-          renderLabel={<Text weight="bold">Fix non-teaching days</Text>}
-          value={state.fixAll}
-          onChange={(_e, { value }) => applyFixAll(value as '' | 'before' | 'after')}
-        >
-          {/* "None selected" is the base state. Going back to it takes the choice back for every item it moved. */}
-          <SimpleSelect.Option id="fix-all-none" value="">None selected</SimpleSelect.Option>
-          <SimpleSelect.Option id="fix-all-before" value="before">Move to the previous teaching day</SimpleSelect.Option>
-          <SimpleSelect.Option id="fix-all-after" value="after">Move to the next teaching day</SimpleSelect.Option>
-        </SimpleSelect>
-    </div>
+    <Menu
+      placement="bottom end"
+      themeOverride={{ maxWidth: 'none' }}
+      trigger={
+        <Button renderIcon={<IconArrowOpenDownLine />} aria-label="Fix non-teaching days" display="inline-block">
+          Fix non-teaching days
+        </Button>
+      }
+    >
+      <Menu.Group
+        label={<ScreenReaderContent>Move dates that are on a non-teaching day</ScreenReaderContent>}
+        selected={[state.fixAll]}
+        onSelect={(_e, updated) => {
+          // Choosing the choice that is on takes it back.
+          const value = updated.length === 0 ? '' : String(updated[updated.length - 1])
+          applyFixAll(value === state.fixAll ? '' : (value as 'before' | 'after'))
+        }}
+      >
+        <Menu.Item value="before"><span style={{ paddingInlineEnd: '2.5rem' }}>Move to the previous teaching day</span></Menu.Item>
+        <Menu.Item value="after"><span style={{ paddingInlineEnd: '2.5rem' }}>Move to the next teaching day</span></Menu.Item>
+      </Menu.Group>
+    </Menu>
   ) : null
 
   // The first day of the course, in the card of the calendar placement.
@@ -215,7 +242,6 @@ export default function FixDatesStep({
   )
 
   // One card: a dropdown picks how the dates move, and what belongs to that choice shows under it.
-  const current = MODES.find((m) => m.id === state.mode) ?? MODES[0]
   // The last day moves with the first day, day by day: the course keeps its length, so a first day one day later gives a last day one day later.
   const endOfCourse = (() => {
     const start = parseStart(state.startText)
@@ -243,23 +269,27 @@ export default function FixDatesStep({
   const modeCard = (
     <div style={{ ...cardStyle, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: t.space.md, flex: 1 }}>
       <Text weight="bold" size="large">Date placement</Text>
-      <RadioInputGroup
+      <RadioWithContent
         name="date-mode"
-        description={<Text weight="bold">Method</Text>}
+        legend="Method"
         value={state.mode}
-        onChange={(_e, value) => setMode(value as DateMode)}
-      >
-        {MODES.map((m) => (
-          <RadioInput key={m.id} value={m.id} label={m.title} />
-        ))}
-      </RadioInputGroup>
-      <Text as="div" color="secondary">{current.body}</Text>
-      {state.mode === 'clear' && (
-        <FigmaAlert variant="info" type="inline">
-          All dates are cleared. Each item is listed on the course Settings page until you set a date.
-        </FigmaAlert>
-      )}
-      {state.mode === 'calendar' && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: t.space.xl }}>{startField}{endDate}</div>}
+        onChange={(value) => setMode(value as DateMode)}
+        choices={MODES.map((m) => ({
+          value: m.id,
+          label: m.title,
+          content: (
+            <>
+              <Text as="div" color="secondary">{m.body}</Text>
+              {m.id === 'clear' && (
+                <FigmaAlert variant="info" type="inline">
+                  All dates are cleared. Each item is listed on the course Settings page until you set a date.
+                </FigmaAlert>
+              )}
+              {m.id === 'calendar' && <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: t.space.xl }}>{startField}{endDate}</div>}
+            </>
+          ),
+        }))}
+      />
     </div>
   )
 
@@ -272,14 +302,12 @@ export default function FixDatesStep({
           <Button renderIcon={<IconEyeLine />} onClick={() => setPreviewOpen(true)}>Course preview</Button>
           <Button renderIcon={<IconAssignmentLine />} onClick={onToggleTodo}>To-do list ({todoCount})</Button>
         </div>
-        <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={preview} noteFor={dateNote} metaFor={dateMetaFor(state, included)} />
-        {/* The date placement and the course publishing are two cards side by side. On a narrow page they stack. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: card ? t.space.lg : sectionGap }}>
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>{modeCard}</div>
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-            <PublishCards opening={opening} setOpening={setOpening} />
-          </div>
-        </div>
+        <CoursePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} source={preview} noteFor={(id) => {
+          const pill = choiceNote(id)
+          const date = dateNote(id)
+          return pill || date ? <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: t.space.sm, justifyContent: 'flex-end' }}>{pill}{date}</span> : null
+        }} leftOut={(id) => !included(id)} metaFor={dateMetaFor(state, included)} />
+        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>{modeCard}</div>
 
       </div>
 
@@ -305,8 +333,25 @@ export default function FixDatesStep({
                 : `${dateCount} dates to review · ${closedCount === 0 ? 'all on teaching days' : `${closedCount} on a non-teaching day · ${open.length} still to fix`}`}
             </Text>
           </div>
-          {/* Fixes every item on a non-teaching day in one go. It sits under the title and description of the Dates card. */}
-          {!clear && fixAll && <div style={{ marginBottom: t.space.lg }}>{fixAll}</div>}
+          {/* The filter on the check pills at the start of the row and the fix button at its end, under a line. */}
+          {!clear && (
+            <div style={{ borderBlockStart: `${t.borderWidth} solid ${t.borderColor}`, paddingBlockStart: t.space.lg, marginBottom: t.space.lg, display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <div style={{ flex: '1 1 12rem', maxWidth: FIELD_WIDTH, minWidth: 0 }}>
+                <SimpleSelect
+                  renderLabel={<Text weight="bold">Filter by check</Text>}
+                  value={dateFilter}
+                  onChange={(_e, { value }) => { setDateFilter(value as DateFilter); setPage(1) }}
+                >
+                  <SimpleSelect.Option id="date-filter-all" value="all">{`All (${countFor('all')})`}</SimpleSelect.Option>
+                  <SimpleSelect.Option id="date-filter-closed" value="closed">{`Non-teaching day (${countFor('closed')})`}</SimpleSelect.Option>
+                  <SimpleSelect.Option id="date-filter-fixed" value="fixed">{`Fixed (${countFor('fixed')})`}</SimpleSelect.Option>
+                  <SimpleSelect.Option id="date-filter-teaching" value="teaching">{`Teaching day (${countFor('teaching')})`}</SimpleSelect.Option>
+                  <SimpleSelect.Option id="date-filter-nodue" value="nodue">{`No due date (${countFor('nodue')})`}</SimpleSelect.Option>
+                </SimpleSelect>
+              </div>
+              {fixAll}
+            </div>
+          )}
           <Table caption={() => 'Dates of the items to copy'} themeOverride={noFill}>
             <Table.Head themeOverride={noFill}>
               <Table.Row themeOverride={noFill}>
@@ -456,11 +501,19 @@ export default function FixDatesStep({
                         <Text as="div" weight="bold">{item.title}</Text>
                         <Text as="div" size="small" color="secondary">{item.kind} · {item.module}</Text>
                       </Table.Cell>
-                      <Table.Cell themeOverride={noFill}>No date</Table.Cell>
                       <Table.Cell themeOverride={noFill}>
-                        <StatusPill size="sm" color="info">No due date</StatusPill>
+                        <DateBlock first label={item.kind === 'Event' ? 'Date' : 'Due'}>No date</DateBlock>
                       </Table.Cell>
                       <Table.Cell themeOverride={noFill}>
+                        {/* Once a date is set on a teaching day the item is fixed. On a non-teaching day it is not fixed yet. */}
+                        <DateBlock first label={item.kind === 'Event' ? 'Date' : 'Due'}>
+                          {date && !closedName(date)
+                            ? <StatusPill size="sm" color="success">Fixed</StatusPill>
+                            : <StatusPill size="sm" color="info">No due date</StatusPill>}
+                        </DateBlock>
+                      </Table.Cell>
+                      <Table.Cell themeOverride={noFill}>
+                        <DateBlock first label={item.kind === 'Event' ? 'Date' : 'Due'}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: t.space.sm }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {date ? (
@@ -502,12 +555,14 @@ export default function FixDatesStep({
                             }}
                           />
                         </div>
+                        </DateBlock>
                       </Table.Cell>
                     </Table.Row>
                   )
                 })}
             </Table.Body>
           </Table>
+          {pageInfos.length + pageNoDate.length === 0 && <Text as="p" color="secondary">No dates match this filter.</Text>}
           <div style={{ marginTop: t.space.lg }}>
             <Pager label="Dates pages" page={currentPage} pageCount={pageCount} onPage={setPage} />
           </div>

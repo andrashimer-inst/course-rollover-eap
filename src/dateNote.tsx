@@ -40,7 +40,8 @@ export function dateMetaFor(state: FixDatesState, included: Included) {
     const mine = infos.filter((r) => r.item.itemId === itemId)
     // Items already in the course keep their dates. The copy does not move them. Their date shows the same way as the others.
     if (mine.length === 0 && itemId.startsWith('current:')) return currentMeta(meta)
-    if (mine.length === 0) return meta
+    // An item left out of the copy has no dates in the preview: only the rest of its line (points and so on) stays.
+    if (mine.length === 0) return meta.split(' | ').filter((seg) => !/^[A-Z][a-z]{2} \d+$/.test(seg)).join(' | ')
     // What the line says besides the old date, like the points.
     const rest = meta.split(' | ').filter((seg) => !/^[A-Z][a-z]{2} \d+$/.test(seg))
     const lines = mine.map((r) => {

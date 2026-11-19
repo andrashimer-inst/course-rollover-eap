@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   CircleCheckInstUIIcon,
+  CircleDashedInstUIIcon,
+  CircleDotInstUIIcon,
   CloseButton,
   Heading,
   Modal,
@@ -24,7 +26,8 @@ import { DATE_ITEMS, INITIAL_DATES, dateCounts } from "./fixDatesData";
 import type { Included } from "./fixDatesData";
 import type { FixDatesState } from "./fixDatesData";
 import LearningObjectReview from "./LearningObjectReview";
-import { buildRows, choiceOf, hiddenModules, itemIdOf } from "./reviewData";
+import { buildRows, choiceLabel, choiceOf, hiddenModules, itemIdOf } from "./reviewData";
+import StatusPill from "./StatusPill";
 import { CONTENT_TYPES } from "./courseContentData";
 import type { Choice, DupeChoice } from "./reviewData";
 import type { CourseNav } from "./GlobalNav";
@@ -40,7 +43,7 @@ import type { CopySummary, EducatorComment } from "./rolloverData";
 // The copy wizard. It opens when someone starts a copy, so the review happens before the copy
 // (discovery priority 1), not after it. Each step has a name that says what it covers:
 //   Learning object review  each item checked against the readiness criteria and the team's comments, with a choice per item
-//   Fix dates        deadlines for the new term, with a preview and warnings (priority 7)
+//   Set dates        place the dates in the new term, with a preview and warnings (priority 7)
 //   Review and copy  readiness check, final preview and a to-do list. The copy starts here
 //   Summary          what was copied and what wasn't (priority 2)
 // Sample data only.
@@ -61,17 +64,17 @@ const STEP_INFO: Record<StepId, { name: string; hint: string; lead: string }> =
     review: {
       name: "Learning object review",
       hint: "Check each item",
-      lead: "Review what the check found. For each item, include it in the copy, leave it out, or add it to your to-do list.",
+      lead: "These are the problems the check found in your course. For each one, include the item in the copy, include it and add it to your to-do list to fix later, or leave it out.",
     },
     dates: {
-      name: "Fix dates",
-      hint: "Deadlines for the new term",
-      lead: "Move every deadline to the new term. Check the preview and fix anything flagged before you copy.",
+      name: "Set dates",
+      hint: "Place dates in the new term",
+      lead: "Choose how the dates move to the new term, and fix any that land on a non-teaching day. Then check the new dates in the table.",
     },
     copy: {
       name: "Review and copy",
       hint: "Readiness check and final preview",
-      lead: "Check the course is ready and look at the final preview. The copy starts when you choose Copy content. Your to-do list comes with the summary afterwards.",
+      lead: "Choose when students see the course, run the readiness check and look through the final course. When it looks right, start the copy, and your to-do list comes with the summary.",
     },
   };
 
@@ -88,12 +91,15 @@ function Stepper({
   onGo: (i: number) => void;
 }) {
   const t = useSurfaceTokens();
+  // Figma Stepper (default layout, horizontal): one continuous rail on top. Done and current steps have a 4px blue stroke,
+  // steps not reached a 2px grey one. The first and last step have rounded outer ends. Under the rail each step has a
+  // 20px icon (done: check, current: dot, not reached: dashed circle), the title (bold for the current step) and a label.
   return (
     <ol
       aria-label="Copy steps"
       style={{
         display: "flex",
-        gap: t.space.lg,
+        gap: 0,
         listStyle: "none",
         margin: 0,
         padding: 0,
@@ -102,11 +108,9 @@ function Stepper({
       {steps.map((id, i) => {
         const done = i < current;
         const isCurrent = i === current;
-        const color = isCurrent
-          ? t.linkColor
-          : done
-            ? t.successTextColor
-            : t.mutedTextColor;
+        const filled = done || isCurrent;
+        const first = i === 0;
+        const last = i === steps.length - 1;
         return (
           <li
             key={id}
@@ -124,43 +128,50 @@ function Stepper({
                 boxSizing: "border-box",
                 width: "100%",
                 display: "flex",
+                flexDirection: "column",
                 gap: t.space.sm,
-                alignItems: "flex-start",
                 cursor: i > reached ? "default" : "pointer",
-                paddingTop: t.space.sm,
-                borderTop: `0.25rem solid ${isCurrent ? t.linkColor : done ? t.successTextColor : t.borderColor}`,
                 color: t.textColor,
               }}
             >
-              <span
-                aria-hidden="true"
-                style={{
-                  flexShrink: 0,
-                  width: "1.5rem",
-                  height: "1.5rem",
-                  boxSizing: "border-box",
-                  borderRadius: "50%",
-                  border: done ? "none" : `0.125rem solid ${color}`,
-                  color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "0.875rem",
-                  fontWeight: 700,
-                }}
-              >
-                {done ? <CircleCheckInstUIIcon /> : i + 1}
+              <span aria-hidden="true" style={{ display: "flex", alignItems: "center", height: "0.25rem" }}>
+                <span
+                  style={{
+                    flex: 1,
+                    height: filled ? "0.25rem" : "0.125rem",
+                    background: filled ? t.linkColor : t.strokeBase,
+                    borderStartStartRadius: first ? "0.125rem" : 0,
+                    borderEndStartRadius: first ? "0.125rem" : 0,
+                    borderStartEndRadius: last ? "0.125rem" : 0,
+                    borderEndEndRadius: last ? "0.125rem" : 0,
+                  }}
+                />
               </span>
-              <span style={{ display: "flex", flexDirection: "column" }}>
-                <Text weight={isCurrent ? "bold" : "normal"}>
-                  {STEP_INFO[id].name}
-                </Text>
-                <Text size="small" color="secondary">
-                  {STEP_INFO[id].hint}
-                </Text>
-                <ScreenReaderContent>
-                  {done ? "Done" : isCurrent ? "Current step" : ""}
-                </ScreenReaderContent>
+              <span style={{ display: "flex", gap: t.space.sm, alignItems: "flex-start", paddingInlineEnd: t.space.lg }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    paddingBlockStart: "0.125rem",
+                    fontSize: "1.25rem",
+                    color: t.textColor,
+                  }}
+                >
+                  {done ? <CircleCheckInstUIIcon /> : isCurrent ? <CircleDotInstUIIcon /> : <CircleDashedInstUIIcon />}
+                </span>
+                <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  <Text weight={isCurrent ? "bold" : "normal"}>
+                    {STEP_INFO[id].name}
+                  </Text>
+                  <Text size="small" color="secondary">
+                    {STEP_INFO[id].hint}
+                  </Text>
+                  <ScreenReaderContent>
+                    {done ? "Done" : isCurrent ? "Current step" : ""}
+                  </ScreenReaderContent>
+                </span>
               </span>
             </button>
           </li>
@@ -256,6 +267,8 @@ export default function RolloverWizard({
   // Whether the readiness check has run on the Review and copy step.
   const [readyRan, setReadyRan] = useState(draft?.readyRan ?? false);
   const [opening, setOpening] = useState<Opening>(draft?.opening ?? INITIAL_OPENING);
+  // Whether the user asked for help in step 3. The summary only shows that card when they did.
+  const [helpSent, setHelpSent] = useState(false);
   const summary = useMemo<CopySummary>(() => {
     const AREA: Record<string, string> = {
       assignments: "Assignments",
@@ -306,7 +319,8 @@ export default function RolloverWizard({
         // The learning objects that are copied. The course-wide fixes are not items of their own.
         created: rows.filter((r) => !r.courseWide && !r.extra && choiceOf(r, choices) !== "leave").length,
         relinked: 3,
-        sentToAdmin: 1,
+        // Only counts when the user sent a help request in step 3.
+        sentToAdmin: helpSent ? 1 : 0,
         datesPlaced: dates.mode === "clear" || dates.mode === "keep" || !adjustDates ? 0 : DATE_ITEMS.filter((i) => included(i.itemId)).length,
       },
       history: buildHistory({ rows, choices, opens: opening.mode === "open" ? openingLabel(opening) : "you publish it" }),
@@ -530,6 +544,10 @@ export default function RolloverWizard({
         style={{ display: "flex", flexDirection: "column", gap: t.space.xl }}
       >
         <Stepper steps={steps} current={step} reached={reached} onGo={go} />
+        {/* A short line on what this step is for, on the steps users were unsure about. */}
+        {!loadingContent && !copying && (id === "review" || id === "dates" || id === "copy") && (
+          <Text as="p" variant="descriptionPage" color="secondary" margin="0">{STEP_INFO[id].lead}</Text>
+        )}
         {loadingContent ? (
           // The wait after step 2 is the course readiness check, the same as the check in steps 3 and 5.
           <div style={{ display: "flex", flexDirection: "column", gap: t.space.lg, padding: `${t.space.xl} 0` }}>
@@ -597,6 +615,7 @@ export default function RolloverWizard({
                 dupes={dupes}
                 todo={todoNow}
                 onToggleTodo={() => setTodoOpen((o) => !o)}
+                onHelpSent={() => setHelpSent(true)}
               />
             )}
             {id === "dates" && (
@@ -609,7 +628,7 @@ export default function RolloverWizard({
                   scope: scope ?? 'whole',
                   picked,
                 }}
-                courseName={course ?? ''} opening={opening} setOpening={setOpening} state={dates} setState={setDates} todoCount={todoNow.length} onToggleTodo={() => setTodoOpen((o) => !o)} />
+                courseName={course ?? ''} choiceNote={(itemId) => { const r = rows.find((x) => x.id === itemId); const c = r ? choiceOf(r, choices) : undefined; return r && c ? <StatusPill size="xs" color={c === 'fix' ? 'warning' : c === 'leave' ? 'neutral' : 'success'}>{choiceLabel(r, c)}</StatusPill> : null }} state={dates} setState={setDates} todoCount={todoNow.length} onToggleTodo={() => setTodoOpen((o) => !o)} />
             )}
             {id === "copy" && (
               <ReviewAndCopyStep
@@ -624,6 +643,7 @@ export default function RolloverWizard({
                 readyRan={readyRan}
                 setReadyRan={setReadyRan}
                 opening={opening}
+                setOpening={setOpening}
                 todoCount={todoNow.length}
                 onToggleTodo={() => setTodoOpen((o) => !o)}
               />

@@ -22,7 +22,7 @@ export type HelpItem = { title: string; detail: string }
 // The recipient, subject and text of a message that is not the one to the admin. `message` gets the list of items.
 export type MessageDraft = { to: string; subject: string; message: (list: string) => string }
 
-// One message to the admin about the whole review. It opens from the "Message admin" button above the table.
+// One message to the admin about the whole review. It opens from the "Ask for help" button above the table.
 // It is the Canvas "Compose Message" window, without the course and the individual-message checkbox: the "To" field is
 // open (the admin is filled in, and it can be changed), and the subject and message are filled in from the items that
 // still need help. Nothing is sent anywhere: this is a prototype.
@@ -42,7 +42,7 @@ export default function AdminHelpModal({
   draft?: MessageDraft
 }) {
   return (
-    <Modal open={open} onDismiss={onClose} size="medium" label="Compose Message" shouldCloseOnDocumentClick={false}>
+    <Modal open={open} onDismiss={onClose} size="medium" label={draft ? 'Compose Message' : 'Ask for help'} shouldCloseOnDocumentClick={false}>
       {open && <Form items={items} onClose={onClose} onSend={onSend} draft={draft} />}
     </Modal>
   )
@@ -52,7 +52,7 @@ function Form({ items, onClose, onSend, draft }: { items: HelpItem[]; onClose: (
   const list = items
     .map((r) => `- ${r.title}: ${r.detail || 'Needs a look.'}`)
     .join('\n')
-  const [to, setTo] = useState(draft?.to ?? 'Your admin')
+  const [to, setTo] = useState(draft?.to ?? 'Course support')
   const [subject, setSubject] = useState(draft?.subject ?? 'Help with the course copy')
   const [message, setMessage] = useState(
     draft ? draft.message(list) : `Hi,\n\nI am copying content into my course and the review found problems I need help with.\n\n${list}\n\nCan you help me fix them before the term starts?\n\nThank you`,
@@ -65,7 +65,7 @@ function Form({ items, onClose, onSend, draft }: { items: HelpItem[]; onClose: (
     <>
       <Modal.Header>
         <CloseButton placement="end" offset="small" onClick={onClose} screenReaderLabel="Close" />
-        <Heading variant="titleSection" level="h2">Compose Message</Heading>
+        <Heading variant="titleSection" level="h2">{draft ? 'Compose Message' : 'Ask for help'}</Heading>
       </Modal.Header>
       <Modal.Body>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

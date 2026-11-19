@@ -35,7 +35,7 @@ export default function StatusPill({
   // An icon before the label. It takes the pill's text color and size.
   icon?: ReactNode
   // Own colors, for a pill on a colored bar, like a white pill on a blue bar.
-  colors?: { background: string; text: string }
+  colors?: { background: string; text: string; border?: string }
 }) {
   const key = useAppThemeKey()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +72,7 @@ export default function StatusPill({
   if (colors) {
     background = colors.background
     text = colors.text
-    border = colors.background
+    border = colors.border ?? colors.background
   }
 
   return (

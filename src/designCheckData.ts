@@ -25,8 +25,8 @@ export type DesignRule = {
 export const DESIGN_RULES: DesignRule[] = [
   // General
   { id: 'course-published', dimension: 'General', severity: 'critical', level: 'course', title: 'Course is published.', why: 'Students can only see a course once it is published.', handled: 'Set when you choose the publish date in the last step.' },
-  { id: 'dates-set', dimension: 'General', severity: 'critical', level: 'course', title: 'Course start and end dates are set.', why: 'The term dates tell students and the calendar when the course runs.', handled: 'Set in the Fix dates step.' },
-  { id: 'due-in-term', dimension: 'General', severity: 'critical', level: 'course', title: 'Published due dates fall within the course dates.', why: 'A due date outside the term is easy to miss and confuses the calendar.', handled: 'Set in the Fix dates step.' },
+  { id: 'dates-set', dimension: 'General', severity: 'critical', level: 'course', title: 'Course start and end dates are set.', why: 'The term dates tell students and the calendar when the course runs.', handled: 'Set in the Set dates step.' },
+  { id: 'due-in-term', dimension: 'General', severity: 'critical', level: 'course', title: 'Published due dates fall within the course dates.', why: 'A due date outside the term is easy to miss and confuses the calendar.', handled: 'Set in the Set dates step.' },
   // Navigation
   { id: 'navigation', dimension: 'Navigation', severity: 'warning', level: 'course', title: 'Course menu shows Settings and Syllabus and hides Search.', why: 'Your account sets which items students see in the course menu.' },
   // Content
@@ -53,5 +53,5 @@ export const DESIGN_RULES: DesignRule[] = [
   { id: 'links', dimension: 'Copy checks', severity: 'critical', level: 'course', title: 'Links between items open the right item.', why: 'A link that points to the old course shows students an error.' },
   { id: 'missing-links', dimension: 'Copy checks', severity: 'critical', level: 'course', title: 'Tool (LTI) links are linked again.', why: 'Canvas cannot copy the connection to an external tool, so each link needs to be linked again before students use it.' },
   { id: 'unused', dimension: 'Copy checks', severity: 'warning', level: 'object', title: 'Items not used last term are reviewed.', why: 'A shorter course is easier to find your way in, and unused items add clutter and things to maintain.' },
-  { id: 'dates-teaching', dimension: 'Copy checks', severity: 'warning', level: 'course', title: 'Dates land on teaching days.', why: 'A date on a weekend or a holiday is easy to miss.', handled: 'Set in the Fix dates step.' },
+  { id: 'dates-teaching', dimension: 'Copy checks', severity: 'warning', level: 'course', title: 'Dates land on teaching days.', why: 'A date on a weekend or a holiday is easy to miss.', handled: 'Set in the Set dates step.' },
 ]

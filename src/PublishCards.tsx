@@ -1,9 +1,10 @@
-import { Checkbox, DateInput, RadioInput, RadioInputGroup, SimpleSelect, Text } from '@instructure/ui/v11_7'
+import { Checkbox, DateInput, SimpleSelect, Text } from '@instructure/ui/v11_7'
+import RadioWithContent from './RadioWithContent'
 import type { Opening } from './reviewCopyData'
 import { useAppThemeKey, useSurfaceTokens } from './appTheme'
 
-// When students see the course: publish on a day and time, or publish by hand. It is one card in the dates step, under the
-// date placement. A dropdown picks the way, and the day and time show under it when the course publishes by itself.
+// When students see the course: publish on a day and time, or publish by hand. It is the first card of the review and copy
+// step, above the course preview. The way is chosen first, and the day and time show under it when publishing is scheduled.
 
 // Every half hour of the day, for the publish time.
 const TIMES = Array.from({ length: 48 }, (_, i) => {
@@ -16,7 +17,6 @@ const TIMES = Array.from({ length: 48 }, (_, i) => {
 
 export default function PublishCards({ opening, setOpening }: { opening: Opening; setOpening: (o: Opening) => void }) {
   const t = useSurfaceTokens()
-  const auto = opening.mode === 'open'
   // Legacy is flat: the publishing options sit on the page, not in a card.
   const card = useAppThemeKey() !== 'legacy'
   return (
@@ -31,59 +31,65 @@ export default function PublishCards({ opening, setOpening }: { opening: Opening
       }}
     >
       <Text weight="bold" size="large">Course publishing</Text>
-      <RadioInputGroup
+      <RadioWithContent
         name="publish-mode"
-        description={<Text weight="bold">Publish</Text>}
+        legend="Publishing method"
         value={opening.mode}
-        onChange={(_e, value) => setOpening({ ...opening, mode: value as Opening['mode'] })}
-      >
-        <RadioInput value="self" label="Manually" />
-        <RadioInput value="open" label="Automatically, on a set day" />
-      </RadioInputGroup>
-      <Text as="div" color="secondary">
-        {auto ? 'Hidden from students until the day and time below.' : 'The course stays hidden until you publish it.'}
-      </Text>
-      {auto && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start' }}>
-          <div style={{ width: '14rem', maxWidth: '100%' }}>
-            <DateInput
-              screenReaderLabels={{
-                calendarIcon: 'Open calendar',
-                prevMonthButton: 'Previous month',
-                nextMonthButton: 'Next month',
-                datePickerDialog: 'Date picker',
-                selectedLabel: 'Selected',
-              }}
-              width="100%"
-              placeholder="Select a date"
-              invalidDateErrorMessage="Enter a valid date"
-              renderLabel={<Text weight="bold">Publish date</Text>}
-              value={opening.date}
-              onChange={(_e, v) => setOpening({ ...opening, date: v })}
-              messages={Number.isNaN(new Date(opening.date).getTime()) ? [{ type: 'newError', text: 'Enter a valid date' }] : []}
-            />
-          </div>
-          <div style={{ width: '14rem', maxWidth: '100%' }}>
-            <SimpleSelect
-              renderLabel={<Text weight="bold">Publish time</Text>}
-              value={opening.time}
-              onChange={(_e, { value }) => setOpening({ ...opening, time: String(value) })}
-            >
-              {TIMES.map((tm) => (
-                <SimpleSelect.Option key={tm.value} id={`publish-${tm.value}`} value={tm.value}>{tm.label}</SimpleSelect.Option>
-              ))}
-            </SimpleSelect>
-          </div>
-        </div>
-      )}
-      {/* Only an automatic publish can be held, so a manual publish has no checkbox. */}
-      {auto && (
-        <Checkbox
-          label="Do not publish automatically if a required check still fails on that day"
-          checked={opening.hold}
-          onChange={() => setOpening({ ...opening, hold: !opening.hold })}
-        />
-      )}
+        onChange={(value) => setOpening({ ...opening, mode: value as Opening['mode'] })}
+        choices={[
+          {
+            value: 'self',
+            label: 'Publish manually',
+            content: <Text as="div" color="secondary">The course stays unpublished and hidden from students until you publish it.</Text>,
+          },
+          {
+            value: 'open',
+            label: 'Schedule publishing',
+            content: (
+              <>
+                <Text as="div" color="secondary">The course is published automatically at the date and time you set. Until then it is not visible to students.</Text>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: t.space.md, alignItems: 'flex-start' }}>
+                  <div style={{ width: '14rem', maxWidth: '100%' }}>
+                    <DateInput
+                      screenReaderLabels={{
+                        calendarIcon: 'Open calendar',
+                        prevMonthButton: 'Previous month',
+                        nextMonthButton: 'Next month',
+                        datePickerDialog: 'Date picker',
+                        selectedLabel: 'Selected',
+                      }}
+                      width="100%"
+                      placeholder="Select a date"
+                      invalidDateErrorMessage="Enter a valid date"
+                      renderLabel={<Text weight="bold">Publish date</Text>}
+                      value={opening.date}
+                      onChange={(_e, v) => setOpening({ ...opening, date: v })}
+                      messages={Number.isNaN(new Date(opening.date).getTime()) ? [{ type: 'newError', text: 'Enter a valid date' }] : []}
+                    />
+                  </div>
+                  <div style={{ width: '14rem', maxWidth: '100%' }}>
+                    <SimpleSelect
+                      renderLabel={<Text weight="bold">Publish time</Text>}
+                      value={opening.time}
+                      onChange={(_e, { value }) => setOpening({ ...opening, time: String(value) })}
+                    >
+                      {TIMES.map((tm) => (
+                        <SimpleSelect.Option key={tm.value} id={`publish-${tm.value}`} value={tm.value}>{tm.label}</SimpleSelect.Option>
+                      ))}
+                    </SimpleSelect>
+                  </div>
+                </div>
+                {/* Only a scheduled publish can be held, so a manual publish has no checkbox. */}
+                <Checkbox
+                  label="Hold publishing if a required readiness check still fails at the scheduled time"
+                  checked={opening.hold}
+                  onChange={() => setOpening({ ...opening, hold: !opening.hold })}
+                />
+              </>
+            ),
+          },
+        ]}
+      />
     </div>
   )
 }

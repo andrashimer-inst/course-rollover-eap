@@ -1,7 +1,7 @@
 import { addDays, daysBetween } from './rolloverData'
 import { CONTENT_TYPES, MODULE_ENTRIES } from './courseContentData'
 
-// Sample data for the "Fix dates" step. Everything here is made up.
+// Sample data for the "Set dates" step. Everything here is made up.
 // Fall 2026 dates are all weekdays, because nothing was taught on a weekend. The items, their Fall 2026 dates and the Spring 2027 dates follow the screens of the dates flow:
 // each item keeps its week of the term and its weekday, and spring break is skipped.
 
@@ -24,13 +24,13 @@ export const DATE_ITEMS: DateItem[] = [
   // A page can have a to-do date, so pages are listed with the rest.
   { id: 'p1', itemId: 'pages:1', title: 'Course welcome', kind: 'Page', module: WELCOME, old: d(2026, 9, 1) },
   { id: 'a1', itemId: 'assignments:1', title: 'Assignment 1: Reading response', kind: 'Assignment', module: WEEK1, old: d(2026, 9, 9), from: d(2026, 8, 31), until: d(2026, 9, 21) },
-  { id: 'q1', itemId: 'quizzes:1', title: 'Quiz 1', kind: 'Quiz', module: WEEK1, old: d(2026, 9, 16), from: d(2026, 9, 14), showOn: d(2026, 9, 17), hideOn: d(2026, 9, 30) },
+  { id: 'q1', itemId: 'quizzes:1', title: 'Quiz 1', kind: 'Quiz', module: WEEK1, old: d(2026, 9, 16), skew: 4, from: d(2026, 9, 14), showOn: d(2026, 9, 17), hideOn: d(2026, 9, 30) },
   { id: 'e3', itemId: 'events:3', title: 'Office hours', kind: 'Event', module: NONE, old: d(2026, 9, 21), time: '15:00' },
   // A discussion can be assigned to several sections, each with its own due date and available-from date, so it has a row for each.
   { id: 'outline-1', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 23), from: d(2026, 9, 16) },
-  { id: 'outline-2', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 25), from: d(2026, 9, 18) },
+  { id: 'outline-2', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 25), skew: 1, from: d(2026, 9, 18) },
   { id: 'outline-3', itemId: 'discussions:3', title: 'Outline feedback', kind: 'Discussion', module: NONE, old: d(2026, 9, 28), from: d(2026, 9, 21) },
-  { id: 'p2', itemId: 'pages:2', title: 'Week 5 overview', kind: 'Page', module: WEEK3, old: d(2026, 9, 30) },
+  { id: 'p2', itemId: 'pages:2', title: 'Week 5 overview', kind: 'Page', module: WEEK3, old: d(2026, 9, 30), skew: 3 },
   { id: 'a2', itemId: 'assignments:2', title: 'Project proposal', kind: 'Assignment', module: WEEK2, old: d(2026, 10, 7) },
   { id: 'debate-a', itemId: 'discussions:2', title: 'Week 3 discussion', kind: 'Group discussion · Group A', module: WEEK2, old: d(2026, 10, 8) },
   { id: 'debate-b', itemId: 'discussions:2', title: 'Week 3 discussion', kind: 'Group discussion · Group B', module: WEEK2, old: d(2026, 10, 9), skew: 1 },
